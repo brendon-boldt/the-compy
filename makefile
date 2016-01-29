@@ -1,10 +1,10 @@
 # Can be fsc or scalac
 SC = fsc
-CLASS_DIRS = $(patsubst %.scala,%,$(wildcard *.scala))
+PACKAGE = compy
 
 all: *.scala
 	$(SC) *.scala
 
 clean:
-	rm -rf $(CLASS_DIRS)
+	rm -rf $(PACKAGE)
 
