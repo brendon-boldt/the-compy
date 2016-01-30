@@ -1,10 +1,24 @@
 package compy
 
-import scala.io.Source
+import scala.util.matching.Regex.Match
 
-object Lexer {
-  def main(args: Array[String]) {
-    var sb = Source.fromFile(args(0)).addString(new StringBuilder(256))
-    println(sb.toString())
+class Lexer(val grammar: Grammar) {
+  var stream = Stream[Char]()
+
+  def getNextToken: Token = {
+    var string = stream.mkString
+    // Maybe use hashmap to keep track of order?
+    for ( k <- grammar.kinds ) {
+      var matched = k.regex.findAllMatchIn(string)
+      println("=" + k + "=")
+      matched.foreach((m: Match) => println(m.start + " -> " + m))
+      /*
+      var matched = k.regex.findFirstMatchIn(string)
+      if (matched != None)
+        println(matched)
+        return new Token(k, matched.get)
+      */
+    }
+    return Token.unidentified
   }
 }
