@@ -2,7 +2,7 @@ package compy
 
 import scala.util.matching.Regex.Match
 
-class Token(val kind: Kind, val regMatch: Match) {
+class Token(val kind: Symbol, val regMatch: Match) {
   
   private var tempValue = ""
   if (regMatch.groupCount > 0)
