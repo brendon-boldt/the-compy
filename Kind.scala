@@ -5,7 +5,7 @@ import scala.util.matching.Regex
 object Kind {
 }
 
-class Kind(val name: String, val regex: Regex) {
+class Kind(val name: Symbol, val regex: Regex) {
   
-  override def toString: String = name
+  override def toString: String = name.toString
 }

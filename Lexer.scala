@@ -44,9 +44,9 @@ class Lexer(val grammar: Grammar) {
   }
 
   /** Processes the source file string using the RegEx-definied grammar.
-   *
+   *  Maybe use a stream instead.
    */
-  def getTokenIterator: Iterator[Token] = {
+  def getTokenArray: Array[Token] = {
     // Reset the number of errors
     errors = 0
     var tokens = new ArrayBuffer[Token]
@@ -63,7 +63,7 @@ class Lexer(val grammar: Grammar) {
     // Sort the token by position in the source file
     val sorted = tokens.sortBy(_.start)
     // Filter the token stream and return the iterator
-    return filterTokens(sorted).iterator
+    return filterTokens(sorted).toArray
   }
 
 }
