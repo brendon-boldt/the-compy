@@ -36,4 +36,13 @@ class Node(val symbol: Symbol, var children: Array[Node]) {
     string 
   }
 
+  // Excludes epsilon
+  def getLength(): Int = {
+    if (symbol == 'epsilon)
+      return 0
+    else if (isLeaf)
+      return 1
+    else
+      children.map(_.getLength).reduce(_+_)
+  }
 }

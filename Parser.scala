@@ -7,25 +7,34 @@ import scala.collection.mutable.ArrayBuffer
 class Parser(val grammar: Grammar) {
 
   var tokenArray = Array[Token]()
-  var tokens = Iterator[Token]()
-  var currentToken: Token = _
+  var tokenIndex = 0
+  //var tokens = Iterator[Token]()
+  //var currentToken: Token = _
   var rootNode = new Node('empty, Array.empty[Node])
   var expectedSymbol = 'epsilon
+  var error = false
 
   def advanceToken(): Boolean = {
-    if (!tokens.hasNext)
+    if (tokenIndex + 1 >= tokenArray.size)
       return false
-    currentToken = tokens.next
-    return true
+    else {
+      tokenIndex += 1
+      return true
+    }
   }
+
+  def backtrack(x: Int) = (tokenIndex -= x)
+
+  def currentToken(): Token = return tokenArray(tokenIndex)
 
   def buildTree(array: Array[Token]) {
     tokenArray = array
-    tokens = tokenArray.iterator
-    advanceToken
+    tokenIndex = 0
+    //tokens = tokenArray.iterator
+    //advanceToken
     rootNode = new Node('Program, Array.empty[Node])
     if (f(rootNode) == None) {
-      println("Parse Error: expecting " + expectedSymbol + " got " + currentToken)
+      println("An error occured while parsing.")
     }
   }
 
@@ -48,7 +57,7 @@ class Parser(val grammar: Grammar) {
       val i = a.iterator
       val children = ArrayBuffer.empty[Node]
       if (!i.hasNext) {
-        node.setChildren(Array(new Node('epslilon, Array.empty[Node])))
+        node.setChildren(Array(new Node('epsilon, Array.empty[Node])))
         return Some(node)
       }
       while (i.hasNext) {
@@ -72,12 +81,18 @@ class Parser(val grammar: Grammar) {
               return Some(node)
             }
           } else {
+            if (!children.isEmpty && !error) {
+              println("Expecting: " + symbol + " got " + currentToken)
+              //println("Backtracking: " + children.map(_.getLength).reduce(_+_))
+              error = true
+              backtrack(children.map(_.getLength).reduce(_+_))
+            }
             i.size// Deplete the iterator
           }
         }
       }
     })
-    println("Parse error: Expecting " + s.toString)
+    //println("Parse error: Expecting " + s.toString)
     return None
   }
 }

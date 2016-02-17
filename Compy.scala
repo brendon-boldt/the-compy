@@ -10,11 +10,10 @@ object Main {
     val l = new Lexer(g)
     l.string = Source.fromFile(args(0)).toStream.mkString
     val iter = l.getTokenArray
-    iter.foreach((t: Token) => println(t))
+    //iter.foreach((t: Token) => println(t))
     //l.getTokenIterator.foreach((s:Token) => print(s.string))
-    //val p = new Parser(g)
-    //p.buildTree(iter)
-    //println(p.rootNode.getTreeString(0))
+    val p = new Parser(g)
+    p.buildTree(iter)
     println("[" + p.rootNode.getTreeBrackets + "]")
   }
 
