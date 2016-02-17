@@ -1,6 +1,7 @@
 package compy
 
 import scala.collection.Iterator
+import scala.collection.mutable.ArrayBuffer
 
 
 class Parser(val grammar: Grammar) {
@@ -8,6 +9,8 @@ class Parser(val grammar: Grammar) {
   var tokenArray = Array[Token]()
   var tokens = Iterator[Token]()
   var currentToken: Token = _
+  var rootNode = new Node('empty, Array.empty[Node])
+  var expectedSymbol = 'epsilon
 
   def advanceToken(): Boolean = {
     if (!tokens.hasNext)
@@ -20,60 +23,61 @@ class Parser(val grammar: Grammar) {
     tokenArray = array
     tokens = tokenArray.iterator
     advanceToken
-    f('Program, 0)
+    rootNode = new Node('Program, Array.empty[Node])
+    if (f(rootNode) == None) {
+      println("Parse Error: expecting " + expectedSymbol + " got " + currentToken)
+    }
   }
 
-  def f(s: Symbol, level: Int): Boolean = {
-    println("f with " + currentToken)
-    //println(("\t" * level) + s)
+  def f(node: Node): Option[Node] = {
+    val s = node.symbol
+    //println("f with " + node)
     var rule = grammar.rules.getOrElse(s, Rule.empty)
     if (rule.name == 'empty) {
-      //println("empty")
-      // Return true because it is a non-terminating character?
       if (s == currentToken.kind.name) {
-        println("~~" + s)
-        return true
+        advanceToken
+        return Some(new Node('epslilon, Array.empty[Node]))
+      } else {
+        return None
       }
-      return false
     }
 
     val prods = rule.productions
+    // This might be better off with the charcter -> rule than r -> c
     prods.foreach((a: Array[Symbol]) => {
       val i = a.iterator
+      val children = ArrayBuffer.empty[Node]
       if (!i.hasNext) {
-        //println("\t"*(level+1) + "'lam")
-        // I think I should return true
-        return true
+        node.setChildren(Array(new Node('epslilon, Array.empty[Node])))
+        return Some(node)
       }
       while (i.hasNext) {
         val symbol = i.next
-        //println(symbol)
-        println(symbol + "\t" + currentToken.kind.name)
         if (symbol == currentToken.kind.name) {
-          //println(("\t"*(level+1)) + symbol)
           // Handle end of token stream
           advanceToken
+          children += new Node(symbol, Array.empty[Node])
           if (!i.hasNext) {
-            println("~~"+ a.mkString)
-            return true
+            //println("~~"+ a.mkString)
+            node setChildren children.toArray
+            return Some(node)
           }
-          /* 
-          if (i.hasNext) {
-            f(i.next, tokens.next, level+1)
-          } else {
-            return true
-          }
-          */
         } else {
-          if (f(symbol, level+1)) {
-            println("~" + symbol)
+          expectedSymbol = symbol
+          var resultNode = f(new Node(symbol, Array.empty[Node]))
+          if (resultNode != None) {
+            children += resultNode.get
             if (!i.hasNext) {
-              return true
+              node setChildren children.toArray
+              return Some(node)
             }
+          } else {
+            i.size// Deplete the iterator
           }
         }
       }
     })
-    return false
+    println("Parse error: Expecting " + s.toString)
+    return None
   }
 }

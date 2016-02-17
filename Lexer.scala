@@ -22,7 +22,7 @@ class Lexer(val grammar: Grammar) {
     for ( token <- tokens ) {
       // Set the token's line number
       token.line = line
-      if ( token.kind.name == "newline" ) {
+      if ( token.kind.name == 'newline ) {
         line += 1
       }
       if (index <= token.start) {
@@ -34,7 +34,7 @@ class Lexer(val grammar: Grammar) {
           errors += 1
         }
         // Only add a token if it is not whitespace
-        if (!(token.kind.name == "ws" || token.kind.name == "newline"))
+        if (!(token.kind.name == 'ws || token.kind.name == 'newline))
           filtered += token
         // Advance the index
         index += token.length
