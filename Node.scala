@@ -8,6 +8,7 @@ object Node {
   }
 }
 
+// Need this include a token?
 class Node(val symbol: Symbol, var children: Array[Node]) {
   
   def setChildren(children: Array[Node]) {

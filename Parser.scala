@@ -82,7 +82,8 @@ class Parser(val grammar: Grammar) {
             }
           } else {
             if (!children.isEmpty && !error) {
-              println("Expecting: " + symbol + " got " + currentToken)
+              println("Parse Error: Expecting: " + symbol + " got "
+                  + currentToken + " on line" + currentToken.line)
               //println("Backtracking: " + children.map(_.getLength).reduce(_+_))
               error = true
               backtrack(children.map(_.getLength).reduce(_+_))
