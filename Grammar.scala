@@ -15,6 +15,7 @@ object Grammar {
     case 'assign => "="
     case 'eq => "=="
     case 'neq => "!="
+    case 'eop => "$"
     case 'Expr => "expression"
     case 'Program => "program"
     case 'Block => "block"

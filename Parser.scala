@@ -12,12 +12,42 @@ class Parser(val grammar: Grammar) {
   var expectedSymbol = 'epsilon
   var error = false
 
-  def produceError(eType: Symbol) = {
-    // Add match stuff here
-    //match
+
+  def setTokenStream(array: Array[Token]) = {
+    tokenArray = array
   }
 
-  def advanceToken(): Boolean = {
+  def resetTokenStream = {
+    tokenIndex = 0
+  }
+
+  // Add multi-program parsing
+  def parseTokens = {
+    error = false
+    rootNode = new Node('Program, Array.empty[Node])
+    if (constructNode(rootNode) == None) {
+      do {
+        advanceToken
+      } while (!isEOS && currentToken.kind.name != 'eop)
+      advanceToken
+    }
+  }
+
+  private def tokenError(symbol: Symbol) =  {
+    println("Parse Error: expecting " + Grammar.getLiteral(symbol) + " got "
+                  + currentToken.string + " on line " + currentToken.line)
+  }
+
+  private def genericError = {println("Parse Error: an error occured while parsing")}
+
+  private def eosError(symbol: Symbol) = {
+    println("Parse Error: end of token steam reached; expecting " + 
+      Grammar.getLiteral(symbol))
+  }
+
+  def isEOS(): Boolean = (tokenIndex + 1 >= tokenArray.size)
+
+  private def advanceToken(): Boolean = {
     if (tokenIndex + 1 >= tokenArray.size)
       return false
     else {
@@ -26,18 +56,9 @@ class Parser(val grammar: Grammar) {
     }
   }
   
-  def backtrack(x: Int) = (tokenIndex -= x)
+  private def backtrack(x: Int) = (tokenIndex -= x)
 
-  def currentToken(): Token = return tokenArray(tokenIndex)
-
-  def buildTree(array: Array[Token]) {
-    tokenArray = array
-    tokenIndex = 0
-    rootNode = new Node('Program, Array.empty[Node])
-    if (constructNode(rootNode) == None) {
-      println("An error occured while parsing.")
-    }
-  }
+  private def currentToken(): Token = return tokenArray(tokenIndex)
 
   def constructNode(node: Node): Option[Node] = {
     val s = node.symbol
@@ -61,7 +82,7 @@ class Parser(val grammar: Grammar) {
     return None
   }
 
-  def applyProduction(node: Node, a: Array[Symbol]): Option[Node] = {
+  private def applyProduction(node: Node, a: Array[Symbol]): Option[Node] = {
       val i = a.iterator
       val children = ArrayBuffer.empty[Node]
       if (!i.hasNext) {
@@ -71,13 +92,11 @@ class Parser(val grammar: Grammar) {
       while (i.hasNext) {
         val symbol = i.next
         if (symbol == currentToken.kind.name) {
-          // Handle end of token stream
           children += new Node(symbol, Array.empty[Node])
           children.last.value = Some(currentToken)
           if (i.hasNext) {
             if (!advanceToken) {
-              println("Parse error: reached end of token stream")
-              println(tokenIndex)
+              eosError(i.next)
               return None
             }
           } else {
@@ -96,10 +115,11 @@ class Parser(val grammar: Grammar) {
             }
           } else {
             if (!children.isEmpty && !error) {
-              println("Parse Error: expecting " + Grammar.getLiteral(symbol) + " got "
-                  + currentToken.string + " on line " + currentToken.line)
-              // Maybe add error recovery
-              //println("Backtracking: " + children.map(_.getLength).reduce(_+_))
+              if (isEOS)
+                eosError(symbol)
+              else
+                tokenError(symbol)
+              // Maybe add error recovery by jumping to next block
               error = true
               backtrack(children.map(_.getLength).reduce(_+_))
             }

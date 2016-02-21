@@ -3,18 +3,54 @@ package compy
 import scala.io.Source
 
 object Main {
+
+  var flagBrackets = false
+
   def main(args: Array[String]) {
+    parseOptions(args)
     var g = new Grammar
     g = generateKinds(g)
     g = generateRules(g)
     val l = new Lexer(g)
-    l.string = Source.fromFile(args(0)).toStream.mkString
-    val iter = l.getTokenArray
-    iter.foreach((t: Token) => println(t))
-    //l.getTokenIterator.foreach((s:Token) => print(s.string))
+    l.string = Source.fromFile(args.last).toStream.mkString
+    val tokenArray = l.getTokenArray
+    // Print token stream
+    // tokenArray.foreach((t: Token) => println(t))
+    if (l.errors > 0)
+      return
     val p = new Parser(g)
-    p.buildTree(iter)
-    println("[" + p.rootNode.getTreeBrackets + "]")
+    p.setTokenStream(tokenArray)
+    while (!p.isEOS) {
+      p.parseTokens
+      if (!p.error && flagBrackets)
+        println("[" + p.rootNode.getTreeBrackets + "]")
+    }
+  }
+
+  private def parseOptions(args: Array[String]): Boolean = {
+    for (option <- args.take(args.size-1)) {
+      if (option.take(2) == "--") {
+        option.substring(2,option.length) match {
+          case "brackets" => flagBrackets = true
+          case _ => {
+            println("Unknown option " + option.substring(2,option.length))
+            return false
+          }
+        }
+      } else if (option.head == '-') {
+        option.tail.foreach((c:Char) => {
+          c match {
+            case 'b' => flagBrackets = true
+            case _ => {
+              println("Unknown option " + c)
+              return false
+            }
+          }
+        })
+      } else
+        return false
+    }
+    true
   }
 
   def generateRules(g: Grammar): Grammar = {

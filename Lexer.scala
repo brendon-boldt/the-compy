@@ -9,6 +9,11 @@ class Lexer(val grammar: Grammar) {
   // Number of exactly what you would think
   var errors = 0
 
+  private def tokenError(string: String, line: Int) = {
+    println("Unrecognized token " +
+      string + " at line " + line)
+  }
+
   /** Filters token stream of unwanted tokens.
    *  
    *  Removes identifiers that are actually keyword and whitespace tokens.
@@ -29,7 +34,7 @@ class Lexer(val grammar: Grammar) {
         // Illegal characters such as @ or # will cause a gap in the token stream.
         // This means the index will be less than the start of the next token.
         if (index < token.start) {
-          println("Unrecognized token " + string(index) + " at line " + token.line)
+          tokenError(string.substring(index, token.start), token.line)
           index = token.start
           errors += 1
         }
