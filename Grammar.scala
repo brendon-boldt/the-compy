@@ -3,6 +3,27 @@ package compy
 import scala.collection.mutable._
 import scala.util.matching.Regex
 
+
+object Grammar {
+
+  def getLiteral(s: Any): String = s match {
+    case 'rparen => ")"
+    case 'lparen => "("
+    case 'rbracket => "}"
+    case 'lbracket => "{"
+    case 'plus => "+"
+    case 'assign => "="
+    case 'eq => "=="
+    case 'neq => "!="
+    case 'Expr => "expression"
+    case 'Program => "program"
+    case 'Block => "block"
+    case _ => s.toString
+  }
+
+}
+
+
 class Grammar {
   val kinds = MutableList.empty[Kind]
   val rules = HashMap.empty[Symbol,Rule]
@@ -14,5 +35,4 @@ class Grammar {
   def addKind(name: Symbol, regex: Regex) {
     kinds += new Kind(name, regex)
   }
-
 }

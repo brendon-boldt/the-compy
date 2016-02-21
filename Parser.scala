@@ -8,11 +8,14 @@ class Parser(val grammar: Grammar) {
 
   var tokenArray = Array[Token]()
   var tokenIndex = 0
-  //var tokens = Iterator[Token]()
-  //var currentToken: Token = _
   var rootNode = new Node('empty, Array.empty[Node])
   var expectedSymbol = 'epsilon
   var error = false
+
+  def produceError(eType: Symbol) = {
+    // Add match stuff here
+    //match
+  }
 
   def advanceToken(): Boolean = {
     if (tokenIndex + 1 >= tokenArray.size)
@@ -22,7 +25,7 @@ class Parser(val grammar: Grammar) {
       return true
     }
   }
-
+  
   def backtrack(x: Int) = (tokenIndex -= x)
 
   def currentToken(): Token = return tokenArray(tokenIndex)
@@ -30,17 +33,14 @@ class Parser(val grammar: Grammar) {
   def buildTree(array: Array[Token]) {
     tokenArray = array
     tokenIndex = 0
-    //tokens = tokenArray.iterator
-    //advanceToken
     rootNode = new Node('Program, Array.empty[Node])
-    if (f(rootNode) == None) {
+    if (constructNode(rootNode) == None) {
       println("An error occured while parsing.")
     }
   }
 
-  def f(node: Node): Option[Node] = {
+  def constructNode(node: Node): Option[Node] = {
     val s = node.symbol
-    //println("f with " + node)
     var rule = grammar.rules.getOrElse(s, Rule.empty)
     if (rule.name == 'empty) {
       if (s == currentToken.kind.name) {
@@ -52,8 +52,16 @@ class Parser(val grammar: Grammar) {
     }
 
     val prods = rule.productions
-    // This might be better off with the charcter -> rule than r -> c
     prods.foreach((a: Array[Symbol]) => {
+      var n = applyProduction(node,a)
+      if (n != None) {
+        return n 
+      }
+    })
+    return None
+  }
+
+  def applyProduction(node: Node, a: Array[Symbol]): Option[Node] = {
       val i = a.iterator
       val children = ArrayBuffer.empty[Node]
       if (!i.hasNext) {
@@ -64,16 +72,22 @@ class Parser(val grammar: Grammar) {
         val symbol = i.next
         if (symbol == currentToken.kind.name) {
           // Handle end of token stream
-          advanceToken
           children += new Node(symbol, Array.empty[Node])
-          if (!i.hasNext) {
-            //println("~~"+ a.mkString)
+          children.last.value = Some(currentToken)
+          if (i.hasNext) {
+            if (!advanceToken) {
+              println("Parse error: reached end of token stream")
+              println(tokenIndex)
+              return None
+            }
+          } else {
+            advanceToken
             node setChildren children.toArray
             return Some(node)
           }
         } else {
           expectedSymbol = symbol
-          var resultNode = f(new Node(symbol, Array.empty[Node]))
+          var resultNode = constructNode(new Node(symbol, Array.empty[Node]))
           if (resultNode != None) {
             children += resultNode.get
             if (!i.hasNext) {
@@ -82,18 +96,19 @@ class Parser(val grammar: Grammar) {
             }
           } else {
             if (!children.isEmpty && !error) {
-              println("Parse Error: Expecting: " + symbol + " got "
-                  + currentToken + " on line" + currentToken.line)
+              println("Parse Error: expecting " + Grammar.getLiteral(symbol) + " got "
+                  + currentToken.string + " on line " + currentToken.line)
+              // Maybe add error recovery
               //println("Backtracking: " + children.map(_.getLength).reduce(_+_))
               error = true
               backtrack(children.map(_.getLength).reduce(_+_))
             }
-            i.size// Deplete the iterator
+            // Deplete the iterator
+            i.size
           }
         }
       }
-    })
-    //println("Parse error: Expecting " + s.toString)
-    return None
+      return None
   }
+
 }

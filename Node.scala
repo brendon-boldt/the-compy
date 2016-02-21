@@ -9,7 +9,7 @@ object Node {
 }
 
 // Need this include a token?
-class Node(val symbol: Symbol, var children: Array[Node]) {
+class Node(var symbol: Symbol, var children: Array[Node], var value: Option[Token] = None) {
   
   def setChildren(children: Array[Node]) {
     this.children = children
@@ -20,7 +20,8 @@ class Node(val symbol: Symbol, var children: Array[Node]) {
   }
 
   override def toString(): String = {
-    symbol.toString
+    //symbol.toString
+    getTreeBrackets
   }
 
   def getTreeString(level: Int): String = {
@@ -31,7 +32,9 @@ class Node(val symbol: Symbol, var children: Array[Node]) {
   }
 
   def getTreeBrackets(): String = {
-    var string = this.toString
+    var string = this.symbol.toString
+    if (this.value.nonEmpty)
+      string += " " + this.value.get.string
     if (!children.isEmpty)
       string += children.map("["+_.getTreeBrackets+"]").reduce(_+_)
     string 
