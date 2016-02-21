@@ -11,7 +11,7 @@ object Grammar {
     case 'lparen => "("
     case 'rbracket => "}"
     case 'lbracket => "{"
-    case 'plus => "+"
+    case 'intop => "+"
     case 'assign => "="
     case 'eq => "=="
     case 'neq => "!="

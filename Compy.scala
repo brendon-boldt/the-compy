@@ -75,7 +75,8 @@ object Main {
     g.addRule('IfStatement , Array(Array('if, 'BooleanExpr, 'Block)))
     g.addRule('IntExpr , Array(Array('digit),Array('digit, 'intop, 'Expr)))
     g.addRule('StringExpr , Array(Array('stringlit)))
-    g.addRule('BooleanExpr , Array(Array('lparen, 'BoolOp, 'rparen), Array('boolval)))
+    g.addRule('BooleanExpr , Array(Array('lparen, 'Expr, 'BoolOp, 'Expr, 'rparen), Array('boolval)))
+    g.addRule('BoolOp , Array(Array('eq), Array('neq)))
     //g.addRule(' , Array(Array()))
     g
   }
@@ -93,9 +94,9 @@ object Main {
     g.addKind('rparen,   """\)""".r)
     g.addKind('lbracket, """\{""".r)
     g.addKind('rbracket, """\}""".r)
-    g.addKind('assign,   """=""".r)
     g.addKind('eq,       """==""".r)
     g.addKind('neq,      """!=""".r)
+    g.addKind('assign,   """=""".r)
     g.addKind('eop,      """\$""".r)
     g.addKind('stringlit,"""(\"([a-z ]*)\")""".r)
     g.addKind('newline,  """\n""".r)

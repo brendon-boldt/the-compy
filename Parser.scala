@@ -11,6 +11,7 @@ class Parser(val grammar: Grammar) {
   var rootNode = new Node('empty, Array.empty[Node])
   var expectedSymbol = 'epsilon
   var error = false
+  var errorString = ""
 
 
   def setTokenStream(array: Array[Token]) = {
@@ -30,19 +31,23 @@ class Parser(val grammar: Grammar) {
         advanceToken
       } while (!isEOS && currentToken.kind.name != 'eop)
       advanceToken
+      println(errorString.stripLineEnd)
+    } else {
+      errorString = ""
+      error = false
     }
   }
 
   private def tokenError(symbol: Symbol) =  {
-    println("Parse Error: expecting " + Grammar.getLiteral(symbol) + " got "
-                  + currentToken.string + " on line " + currentToken.line)
+    errorString += ("Parse Error: expecting " + Grammar.getLiteral(symbol) + " got "
+                  + currentToken.string + " on line " + currentToken.line + "\n")
   }
 
-  private def genericError = {println("Parse Error: an error occured while parsing")}
+  private def genericError = {errorString += "Parse Error: an error occured while parsing\n"}
 
   private def eosError(symbol: Symbol) = {
-    println("Parse Error: end of token steam reached; expecting " + 
-      Grammar.getLiteral(symbol))
+    errorString = "Parse Error: end of token steam reached; expecting " + 
+      Grammar.getLiteral(symbol) + "\n"
   }
 
   def isEOS(): Boolean = (tokenIndex + 1 >= tokenArray.size)
@@ -111,6 +116,7 @@ class Parser(val grammar: Grammar) {
             children += resultNode.get
             if (!i.hasNext) {
               node setChildren children.toArray
+              error = false
               return Some(node)
             }
           } else {
@@ -120,6 +126,7 @@ class Parser(val grammar: Grammar) {
               else
                 tokenError(symbol)
               // Maybe add error recovery by jumping to next block
+              // This error might be causing problems
               error = true
               backtrack(children.map(_.getLength).reduce(_+_))
             }
