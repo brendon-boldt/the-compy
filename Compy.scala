@@ -28,8 +28,10 @@ object Main {
       tokenArray.foreach((t: Token) => println(t))
       println
     }
-    if (l.errors > 0)
+    if (l.errors > 0) {
+      println("Lexing failed due to one or more errors")
       return
+    }
     val p = new Parser(g)
     p.flagVerbose = flagVerbose
     p.setTokenStream(tokenArray)
@@ -39,6 +41,9 @@ object Main {
       if (!p.error && flagBrackets)
         // See the README for use of this output
         println("[" + p.rootNode.getTreeBrackets + "]")
+      else if (p.error) {
+        println("Parsing failed due to one or more errors")
+      }
     }
   }
 
@@ -78,7 +83,7 @@ object Main {
    * All languge-specific code is set here.
    */
   def generateRules(g: Grammar): Grammar = {
-    g.addRule('Program, Array(Array('Block, 'eop)))
+    g.addRule('Program, Array(Array('Block, 'eop), Array('Block)))
     g.addRule('Block, Array(Array('lbracket, 'StatementList, 'rbracket)
       ))
     g.addRule('StatementList, Array(Array('Statement, 'StatementList), Array()))

@@ -54,6 +54,8 @@ class Parser(val grammar: Grammar) {
       // Print the errors which occurred 
       println(errorString.stripLineEnd)
     } else {
+      if (rootNode.children.length == 1)
+        println("Parser warning: forgotten '$' at end of program")
       resetError
     }
   }
@@ -98,7 +100,11 @@ class Parser(val grammar: Grammar) {
     }
   }
   
-  private def backtrack(x: Int) = (tokenIndex -= x)
+  private def backtrack(x: Int) = {
+    tokenIndex -= x
+    if (tokenIndex < 0)
+      tokenIndex = 0
+  }
 
   private def currentToken(): Token = return tokenArray(tokenIndex)
 
@@ -219,7 +225,13 @@ class Parser(val grammar: Grammar) {
               // common prefixes. If a production matched some symbols/tokens but
               // consequently failed, backtrack however many tokens were consumed
               // and start matching the next production.
-              backtrack(children.map(_.getLength).reduce(_+_))
+              var consumedTokens = children.map(_.getLength).reduce(_+_)
+              // If the '$' was forgotten at the end of the program; we need to
+              // go back one fewer token than normal.
+              if (symbol == 'eop)
+                backtrack(consumedTokens-1)
+              else
+                backtrack(consumedTokens)
             }
             // Deplete the iterator to exit the production (controlled by while i.hasNext)
             i.size
