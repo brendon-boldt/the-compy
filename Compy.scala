@@ -5,33 +5,52 @@ import scala.io.Source
 object Main {
 
   var flagBrackets = false
+  var flagVerbose = false
 
   def main(args: Array[String]) {
-    parseOptions(args)
+    if (!parseOptions(args))
+      // If one of the options is not recognized, terminate the program
+      return
     var g = new Grammar
+    /*
+     * The grammar (for lex and parse) is completely specified by
+     * the two functions found below.
+    */
     g = generateKinds(g)
     g = generateRules(g)
     val l = new Lexer(g)
+    l.flagVerbose = flagVerbose
     l.string = Source.fromFile(args.last).toStream.mkString
     val tokenArray = l.getTokenArray
-    // Print token stream
-    // tokenArray.foreach((t: Token) => println(t))
+    if (flagVerbose) {
+      // Print the token steam (after it has been stripped of whitespace, etc.
+      println("Token Steam:")
+      tokenArray.foreach((t: Token) => println(t))
+      println
+    }
     if (l.errors > 0)
       return
     val p = new Parser(g)
+    p.flagVerbose = flagVerbose
     p.setTokenStream(tokenArray)
     while (!p.isEOS) {
+      // Keep parsing new programs while there are tokens left in the token stream
       p.parseTokens
       if (!p.error && flagBrackets)
+        // See the README for use of this output
         println("[" + p.rootNode.getTreeBrackets + "]")
     }
   }
 
+  /**
+   * Parse posix-style command line options
+   */
   private def parseOptions(args: Array[String]): Boolean = {
     for (option <- args.take(args.size-1)) {
       if (option.take(2) == "--") {
         option.substring(2,option.length) match {
           case "brackets" => flagBrackets = true
+          case "verbose" => flagVerbose = true
           case _ => {
             println("Unknown option " + option.substring(2,option.length))
             return false
@@ -41,6 +60,7 @@ object Main {
         option.tail.foreach((c:Char) => {
           c match {
             case 'b' => flagBrackets = true
+            case 'v' => flagVerbose = true
             case _ => {
               println("Unknown option " + c)
               return false
@@ -53,6 +73,10 @@ object Main {
     true
   }
 
+  /**
+   * This is where all of the parsing rules are specified.
+   * All languge-specific code is set here.
+   */
   def generateRules(g: Grammar): Grammar = {
     g.addRule('Program, Array(Array('Block, 'eop)))
     g.addRule('Block, Array(Array('lbracket, 'StatementList, 'rbracket)
@@ -99,8 +123,11 @@ object Main {
     g.addKind('assign,   """=""".r)
     g.addKind('eop,      """\$""".r)
     g.addKind('stringlit,"""(\"([a-z ]*)\")""".r)
+    // Used in counting newlines for compiler messages
     g.addKind('newline,  """\n""".r)
+    // Non newline whitespace
     g.addKind('ws,       """[\r\t\f ]+""".r)
+    // Any character/pattern that is not among those above will cause lex to fail.
     g
   }
 }

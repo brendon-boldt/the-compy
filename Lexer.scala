@@ -4,6 +4,9 @@ import scala.util.matching.Regex.Match
 import scala.collection.mutable.ArrayBuffer
 
 class Lexer(val grammar: Grammar) {
+
+  var flagVerbose = false
+  
   // A string which will contain the source file bytes
   var string = ""
   // Number of exactly what you would think
