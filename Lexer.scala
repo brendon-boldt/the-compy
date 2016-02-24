@@ -33,6 +33,10 @@ class Lexer(val grammar: Grammar) {
       if ( token.kind.name == 'newline ) {
         line += 1
       }
+      // If the 'while' is matched as token, there will also be a token for the inital
+      // 'w' as an ID. Matching 'while' moved the index past the index of the 'w' which
+      // means that the below condition will be false for the ID 'w' and it will not be
+      // included in the token stream.
       if (index <= token.start) {
         // Illegal characters such as @ or # will cause a gap in the token stream.
         // This means the index will be less than the start of the next token.
@@ -68,7 +72,11 @@ class Lexer(val grammar: Grammar) {
         tokens += token
       })
     }
-    // Sort the token by position in the source file
+    // Sort the token by position in the source file.
+    // Since this is a stable sort (timsort, I think), lex rules which
+    // were specified first will still come before subsequent rules, think
+    // while as keyword vs while as 5 ID's. This is important for filtering
+    // the tokens proprely.
     val sorted = tokens.sortBy(_.start)
     // Filter the token stream and return the iterator
     return filterTokens(sorted).toArray

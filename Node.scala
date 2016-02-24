@@ -1,20 +1,15 @@
 package compy
 
-
-object Node {
-  
-  def fromSymbols(symbol: Symbol, children: Array[Symbol]): Node = {
-    new Node(symbol, children.map(new Node(_,Array.empty[Node])))
-  }
-}
-
-// Need this include a token?
+// A CST node is constructed from a symbol, an array of children, and token
 class Node(var symbol: Symbol, var children: Array[Node], var value: Option[Token] = None) {
   
+  // Nodes are usually constructed before the children are known.
+  // Hence, we must have a way to set the children post-construction.
   def setChildren(children: Array[Node]) {
     this.children = children
   }
 
+  // Leaf seems to be an appropriate term for a person without children
   def isLeaf(): Boolean = {
     children.isEmpty
   }
@@ -24,6 +19,7 @@ class Node(var symbol: Symbol, var children: Array[Node], var value: Option[Toke
     getTreeBrackets
   }
 
+  // This generates a tree using tabs to denote levels; it's quite hideous
   def getTreeString(level: Int): String = {
     var string = "\t"*level + this.toString
     if (!children.isEmpty)
@@ -31,6 +27,7 @@ class Node(var symbol: Symbol, var children: Array[Node], var value: Option[Toke
     string.stripLineEnd
   }
 
+  // The README for a link to a visualizer for the bracketed tree
   def getTreeBrackets(): String = {
     var string = this.symbol.toString
     if (this.value.nonEmpty)
@@ -40,7 +37,7 @@ class Node(var symbol: Symbol, var children: Array[Node], var value: Option[Toke
     string 
   }
 
-  // Excludes epsilon
+  // Gets the length of the node by counting its non-epsilon leaves
   def getLength(): Int = {
     if (symbol == 'epsilon)
       return 0

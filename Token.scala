@@ -4,6 +4,9 @@ import scala.util.matching.Regex.Match
 
 class Token(val kind: Kind, val regMatch: Match) {
   
+  // Regex matches can be used to distinguish between
+  // int, string, and boolean, for example, since they are all
+  // grammatically identical but semantically different.
   private var tempValue = ""
   if (regMatch.groupCount > 0)
     tempValue = regMatch.group(1)

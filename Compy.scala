@@ -105,6 +105,9 @@ object Main {
     g
   }
 
+  /**
+   * Here is the definition of what will be lexed by--er--lex
+   */
   def generateKinds(g: Grammar): Grammar = {
     g.addKind('print,    """(print)""".r)
     g.addKind('type,     """(int|string|boolean)""".r)
