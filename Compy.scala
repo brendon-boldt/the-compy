@@ -31,6 +31,8 @@ object Main {
     if (l.errors > 0) {
       println("Lexing failed due to one or more errors")
       return
+    } else if (!flagBrackets) {
+      println("Lexing completed successfully")
     }
     val p = new Parser(g)
     p.flagVerbose = flagVerbose
@@ -38,11 +40,13 @@ object Main {
     while (!p.isEOS) {
       // Keep parsing new programs while there are tokens left in the token stream
       p.parseTokens
-      if (!p.error && flagBrackets)
+      if (!p.error && flagBrackets) {
         // See the README for use of this output
         println("[" + p.rootNode.getTreeBrackets + "]")
-      else if (p.error) {
+      } else if (p.error) {
         println("Parsing failed due to one or more errors")
+      } else {
+        println("Parsing completed successfully")
       }
     }
   }

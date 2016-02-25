@@ -1,6 +1,10 @@
 The Compy
 ============
 
+### Language Information
+
+The grammar of the language can be found [here](http://labouseur.com/courses/compilers/grammar.pdf).
+
 ### Build Instructions (Linux)
 
 [Download and install](http://www.scala-lang.org/download/install.html) Scala.
@@ -8,6 +12,8 @@ The Compy
 Run `git clone https://github.com/brendon-boldt/the-compy.git`
 
 To build, run `make` (or `make clean` to clean class files)
+
+### Run Instructions
 
 To run, run `scala compy.Main OPTIONS FILENAME`
 
