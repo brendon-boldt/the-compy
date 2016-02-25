@@ -1,0 +1,5 @@
+{
+  i = @a
+  # Not a comment
+  print("hello cruel world")
+}$
