@@ -69,6 +69,7 @@ class Lexer(val grammar: Grammar) {
       matched.foreach((m: Match) => {
         // Create a token from the match
         var token = new Token(k, m)
+        token.initialize
         tokens += token
       })
     }

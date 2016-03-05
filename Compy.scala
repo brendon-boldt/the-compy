@@ -40,10 +40,10 @@ object Main {
     while (!p.isEOS) {
       // Keep parsing new programs while there are tokens left in the token stream
       p.parseTokens
-      if (!p.error && flagBrackets) {
+      if (!p.errorState && flagBrackets) {
         // See the README for use of this output
         println("[" + p.rootNode.getTreeBrackets + "]")
-      } else if (p.error) {
+      } else if (p.errorState) {
         println("Parsing failed due to one or more errors")
       } else {
         println("Parsing completed successfully")
@@ -87,7 +87,7 @@ object Main {
    * All languge-specific code is set here.
    */
   def generateRules(g: Grammar): Grammar = {
-    g.addRule('Program, Array(Array('Block, 'eop), Array('Block)))
+    g.addRule('Program, Array(Array('Block, 'eop)/*, Array('Block)*/))
     g.addRule('Block, Array(Array('lbracket, 'StatementList, 'rbracket)
       ))
     g.addRule('StatementList, Array(Array('Statement, 'StatementList), Array()))
