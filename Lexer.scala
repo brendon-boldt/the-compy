@@ -65,10 +65,10 @@ class Lexer(val grammar: Grammar) {
     // Loop through each of the kinds as defined by the grammar
     for ( k <- grammar.kinds ) {
       // Save all RegEx matches
-      var matched = k.regex.findAllMatchIn(string)
+      var matched = k.regex.get.findAllMatchIn(string)
       matched.foreach((m: Match) => {
         // Create a token from the match
-        var token = new Token(k, m)
+        var token = new Token(k, Some(m))
         token.initialize
         tokens += token
       })

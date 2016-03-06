@@ -34,6 +34,6 @@ class Grammar {
   }
 
   def addKind(name: Symbol, regex: Regex) {
-    kinds += new Kind(name, regex)
+    kinds += new Kind(name, Some(regex))
   }
 }

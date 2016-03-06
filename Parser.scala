@@ -12,7 +12,7 @@ class Parser(val grammar: Grammar) {
   var tokenIndex = 0
   var rootNode = new Node('empty, Array.empty[Node])
   var errorState = false
-  var eosErrorSymbol: Symbol = _
+  var eosErrorSymbol: Option[Symbol] = None
   var errorString = ""
   val errors = ArrayBuffer.empty[(Symbol, Token)]
 
@@ -36,7 +36,7 @@ class Parser(val grammar: Grammar) {
 
     var res = constructNode(rootNode)
     errorState = !errors.isEmpty
-    errorState = errorState || (eosErrorSymbol != null)
+    errorState = errorState || (!eosErrorSymbol.isEmpty)
     makeErrorString
 
     if (errorState) {
@@ -59,7 +59,7 @@ class Parser(val grammar: Grammar) {
       case (s,t) => errorString += ("Parse Error: expecting " + Grammar.getLiteral(s) +
         " got " + t.string + " on line " + t.line + "\n")
     })
-    if (eosErrorSymbol != null)
+    if (!eosErrorSymbol.isEmpty)
       errorString += ("Parse Error: expecting " + Grammar.getLiteral(eosErrorSymbol) +
         " reached end of stream")
   }
@@ -82,7 +82,7 @@ class Parser(val grammar: Grammar) {
    */
   private def eosError(symbol: Symbol) = {
     errorState = true
-    eosErrorSymbol = symbol 
+    eosErrorSymbol = Some(symbol)
     //errorString = "Parse Error: end of token steam reached; expecting " + 
     //  Grammar.getLiteral(symbol) + "\n"
   }
@@ -132,7 +132,7 @@ class Parser(val grammar: Grammar) {
 
   private def currentToken(): Token = {
     if (tokenIndex + 1 > tokenArray.size)
-      return new Token(Kind.eof, null)
+      return new Token(Kind.eof, None)
     return tokenArray(tokenIndex)
   }
 

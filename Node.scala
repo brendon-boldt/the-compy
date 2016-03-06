@@ -3,10 +3,23 @@ package compy
 // A CST node is constructed from a symbol, an array of children, and token
 class Node(var symbol: Symbol, var children: Array[Node], var value: Option[Token] = None) {
   
+  var parent: Option[Node] = None
+
   // Nodes are usually constructed before the children are known.
   // Hence, we must have a way to set the children post-construction.
   def setChildren(children: Array[Node]) {
     this.children = children
+    this.children.foreach( _.parent = Some(this) )
+    //this.children.foreach( (x:Node) => (println(x.parent.symbol)) )
+  }
+
+  def getParentNode(symbol: Symbol): Option[Node] = {
+    if (parent.isEmpty)
+      return None
+    else if (parent.get.symbol == symbol)
+      return parent
+    else
+      return parent.get.getParentNode(symbol)
   }
 
   // Leaf seems to be an appropriate term for a person without children
