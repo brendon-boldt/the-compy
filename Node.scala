@@ -4,6 +4,7 @@ package compy
 class Node(var symbol: Symbol, var children: Array[Node], var value: Option[Token] = None) {
   
   var parent: Option[Node] = None
+  val tableNode: Option[TableNode] = None
 
   // Nodes are usually constructed before the children are known.
   // Hence, we must have a way to set the children post-construction.

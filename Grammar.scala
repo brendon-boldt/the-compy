@@ -7,6 +7,7 @@ import scala.util.matching.Regex
 object Grammar {
 
   def getLiteral(s: Any): String = s match {
+    case 'id => "identifier"
     case 'rparen => ")"
     case 'lparen => "("
     case 'rbracket => "}"
@@ -28,6 +29,10 @@ object Grammar {
 class Grammar {
   val kinds = MutableList.empty[Kind]
   val rules = HashMap.empty[Symbol,Rule]
+
+  def isTerminal(symbol: Symbol): Boolean = {
+    !this.rules.contains(symbol)
+  }
   
   def addRule(name: Symbol, productions:Array[Array[Symbol]]) {
     rules += name -> new Rule(name, productions) 

@@ -32,11 +32,17 @@ class Parser(val grammar: Grammar) {
    */
   def parseTokens = {
     errorState = false
-    rootNode = new Node('Program, Array.empty[Node])
+    //rootNode = new Node('Program, Array.empty[Node])
+    var emptyChild = new Node('PLACEHOLDER, Array.empty[Node])
+    rootNode = new Node('Program, Array[Node](emptyChild))
 
     var res = constructNode(rootNode)
+    if (rootNode.children.size > 0 && rootNode.children(0).symbol == 'PLACEHOLDER) {
+      tokenError('lbracket, currentToken)
+    }
     errorState = !errors.isEmpty
-    errorState = errorState || (!eosErrorSymbol.isEmpty)
+    // Not sure why this line is hear
+    //errorState = errorState || (!eosErrorSymbol.isEmpty)
     makeErrorString
 
     if (errorState) {
@@ -60,7 +66,7 @@ class Parser(val grammar: Grammar) {
         " got " + t.string + " on line " + t.line + "\n")
     })
     if (!eosErrorSymbol.isEmpty)
-      errorString += ("Parse Error: expecting " + Grammar.getLiteral(eosErrorSymbol) +
+      errorString += ("Parse Error: expecting " + Grammar.getLiteral(eosErrorSymbol.get) +
         " reached end of stream")
   }
 
@@ -145,8 +151,7 @@ class Parser(val grammar: Grammar) {
    */
   def constructNode(node: Node): Option[Node] = {
     val s = node.symbol
-    if (flagVerbose)
-      println("Attempting to construct node for " + s)
+    if (flagVerbose) println("Attempting to construct node for " + s)
     var rule = grammar.rules.getOrElse(s, Rule.empty)
     if (rule.name == 'empty) {
       if (s == currentToken.kind.name) {
@@ -161,21 +166,30 @@ class Parser(val grammar: Grammar) {
     var expected = ArrayBuffer.empty[(Symbol, Token)]
     prods.foreach((a: Array[Symbol]) => {
       var n = applyProduction(node, a, expected)
-      if (n != None) {
-        if (flagVerbose)
-          println("Constructed node " + n.get.symbol)
+      if (!n.isEmpty) {
+        if (flagVerbose) println("Constructed node " + n.get.symbol)
+        // This is grammar specific :.(
+        if (n.get.symbol == 'VarDecl) {
+          //n.get.getParentNode('Block).get
+        }
         return n 
       }
     })
 
     if (!expected.isEmpty) {
       expected.map((t:(Symbol, Token)) => tokenError(t._1, t._2))
+      /*
       advanceToEndOfBlock
+      if (isEOS) {
+        return None
+      }
       resetError
       return Some(new Node('Block, Array.empty[Node], None))
+      */
     }
-    if (flagVerbose)
+    if (flagVerbose) {
       println("Node construction failed for " + s)
+    }
     return None
   }
 
@@ -197,8 +211,7 @@ class Parser(val grammar: Grammar) {
       while (i.hasNext) {
         val symbol = i.next
         if (symbol == currentToken.kind.name) {
-          if (flagVerbose)
-            println("Matched " + symbol + " with token " + currentToken)
+          if (flagVerbose) println("Matched " + symbol + " with token " + currentToken)
           children += new Node(symbol, Array.empty[Node])
           children.last.value = Some(currentToken)
           if (i.hasNext) {
@@ -221,21 +234,24 @@ class Parser(val grammar: Grammar) {
               return Some(node)
             }
           } else {
+            //if (!grammar.isTerminal(symbol) && !errorState) {
             if (!children.isEmpty && !errorState) {
               //if (isEOS)
               //  eosError(symbol)
               //else {
               expected += new Tuple2(symbol, currentToken)
               //}
-              if (flagVerbose) {
-                println("Destructing " + symbol + "; bactracking "
-                  + children.map(_.getLength).reduce(_+_) + " tokens")
+              if (!children.isEmpty) {
+                if (flagVerbose) {
+                  println("Destructing " + symbol + "; bactracking "
+                    + children.map(_.getLength).reduce(_+_) + " tokens")
+                }
+                var consumedTokens = children.map(_.getLength).reduce(_+_)
+                if (symbol == 'eop)
+                  backtrack(consumedTokens-1)
+                else
+                  backtrack(consumedTokens)
               }
-              var consumedTokens = children.map(_.getLength).reduce(_+_)
-              if (symbol == 'eop)
-                backtrack(consumedTokens-1)
-              else
-                backtrack(consumedTokens)
             }
             // Deplete the iterator to exit the production (controlled by while i.hasNext)
             i.size

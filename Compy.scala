@@ -48,6 +48,10 @@ object Main {
       } else {
         println("Parsing completed successfully")
       }
+      //
+      // Remove this after debugging
+      //
+      return;
     }
   }
 
