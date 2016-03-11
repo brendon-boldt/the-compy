@@ -38,10 +38,8 @@ object Main {
     p.flagVerbose = flagVerbose
     p.setTokenStream(tokenArray)
     while (!p.isEOS) {
-      // Keep parsing new programs while there are tokens left in the token stream
       p.parseTokens
       if (!p.errorState && flagBrackets) {
-        // See the README for use of this output
         println("[" + p.rootNode.getTreeBrackets + "]")
       } else if (p.errorState) {
         println("Parsing failed due to one or more errors")
@@ -51,7 +49,7 @@ object Main {
       //
       // Remove this after debugging
       //
-      return;
+      //return;
     }
   }
 

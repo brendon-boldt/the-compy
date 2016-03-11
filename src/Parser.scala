@@ -31,33 +31,41 @@ class Parser(val grammar: Grammar) {
    * This parses one program and builds the CST from rootNode
    */
   def parseTokens = {
-    errorState = false
+    resetError
     //rootNode = new Node('Program, Array.empty[Node])
     var emptyChild = new Node('PLACEHOLDER, Array.empty[Node])
     rootNode = new Node('Program, Array[Node](emptyChild))
 
+    val startIndex = tokenIndex
     var res = constructNode(rootNode)
-    if (rootNode.children.size > 0 && rootNode.children(0).symbol == 'PLACEHOLDER) {
+    if (rootNode.children.size > 0
+        && rootNode.children(0).symbol == 'PLACEHOLDER
+        && tokenIndex == startIndex) {
       tokenError('lbracket, currentToken)
     }
     errorState = !errors.isEmpty
+    errorState = errorState || (res == None)
     // Not sure why this line is hear
     //errorState = errorState || (!eosErrorSymbol.isEmpty)
     makeErrorString
 
     if (errorState) {
+      advanceToNextProgram
       if (flagVerbose)
         println("Parse failed; advancing to next program")
+      println(errorString.stripLineEnd)
+    } else {
+      //if (rootNode.children.length == 1)
+        //println("Parser warning: forgotten '$' at end of program")
+    }
+  }
+  
+  private def advanceToNextProgram = {
       do {
         advanceToken
       } while (!isEOS && currentToken.kind.name != 'eop)
       advanceToken
-      println(errorString.stripLineEnd)
-    } else {
-      if (rootNode.children.length == 1)
-        println("Parser warning: forgotten '$' at end of program")
-      //resetError
-    }
+      //println("Advanced to: " + currentToken)
   }
 
   private def makeErrorString = {
@@ -95,6 +103,8 @@ class Parser(val grammar: Grammar) {
 
   def resetError = {
     errorState = false
+    errorString = ""
+    errors.reduceToSize(0)
   }
 
   def isEOS(): Boolean = (currentToken.kind.name == 'EOF)
@@ -168,7 +178,6 @@ class Parser(val grammar: Grammar) {
       var n = applyProduction(node, a, expected)
       if (!n.isEmpty) {
         if (flagVerbose) println("Constructed node " + n.get.symbol)
-        // This is grammar specific :.(
         if (n.get.symbol == 'VarDecl) {
           //n.get.getParentNode('Block).get
         }
@@ -178,17 +187,10 @@ class Parser(val grammar: Grammar) {
 
     if (!expected.isEmpty) {
       expected.map((t:(Symbol, Token)) => tokenError(t._1, t._2))
-      /*
-      advanceToEndOfBlock
-      if (isEOS) {
-        return None
-      }
-      resetError
-      return Some(new Node('Block, Array.empty[Node], None))
-      */
     }
     if (flagVerbose) {
       println("Node construction failed for " + s)
+      println("--> " + expected.mkString)
     }
     return None
   }
@@ -230,7 +232,6 @@ class Parser(val grammar: Grammar) {
             children += resultNode.get
             if (!i.hasNext) {
               node setChildren children.toArray
-              //resetError
               return Some(node)
             }
           } else {
