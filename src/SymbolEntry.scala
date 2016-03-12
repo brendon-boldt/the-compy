@@ -1,5 +1,8 @@
 package compy
 
-class SymbolEntry (val varTyp: Symbol) {
-  
+class SymbolEntry (val varType: Symbol) {
+
+  override def toString(): String = {
+    varType.toString
+  }
 }

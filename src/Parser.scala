@@ -55,6 +55,7 @@ class Parser(val grammar: Grammar) {
         println("Parse failed; advancing to next program")
       println(errorString.stripLineEnd)
     } else {
+      //println(rootNode.getSTString(0))
       //if (rootNode.children.length == 1)
         //println("Parser warning: forgotten '$' at end of program")
     }
@@ -152,6 +153,16 @@ class Parser(val grammar: Grammar) {
     return tokenArray(tokenIndex)
   }
 
+  // This is grammar specific, but I think this is the
+  // best way at least for now.
+  def addSymbol(parent: Node, node: Node): Boolean = {
+    if (parent.tableNode.isEmpty)
+      parent.tableNode = Some(new TableNode())
+    parent.tableNode.get += ((node.children(1).value.get.value,
+        new SymbolEntry(Symbol(node.children(0).value.get.string))))
+    true
+  }
+
   /**
    * Construct a node using the productions as specified by its symbol.
    * The argument node should have its symbol set and have no children.
@@ -175,11 +186,11 @@ class Parser(val grammar: Grammar) {
     val prods = rule.productions
     var expected = ArrayBuffer.empty[(Symbol, Token)]
     prods.foreach((a: Array[Symbol]) => {
-      var n = applyProduction(node, a, expected)
+      val n = applyProduction(node, a, expected)
       if (!n.isEmpty) {
         if (flagVerbose) println("Constructed node " + n.get.symbol)
         if (n.get.symbol == 'VarDecl) {
-          //n.get.getParentNode('Block).get
+          addSymbol(n.get.getParentNode('Block).get, n.get)
         }
         return n 
       }
@@ -207,14 +218,14 @@ class Parser(val grammar: Grammar) {
       if (!i.hasNext) {
         if (flagVerbose)
           println("Matched epsilon (null string)")
-        node.setChildren(Array(new Node('epsilon, Array.empty[Node])))
+        node.setChildren(Array(new Node('epsilon, Array.empty[Node], parent = Some(node))))
         return Some(node)
       }
       while (i.hasNext) {
         val symbol = i.next
         if (symbol == currentToken.kind.name) {
           if (flagVerbose) println("Matched " + symbol + " with token " + currentToken)
-          children += new Node(symbol, Array.empty[Node])
+          children += new Node(symbol, Array.empty[Node], parent = Some(node))
           children.last.value = Some(currentToken)
           if (i.hasNext) {
             if (!advanceToken) {
@@ -223,11 +234,11 @@ class Parser(val grammar: Grammar) {
             }
           } else {
             advanceToken
-            node setChildren children.toArray
+           node setChildren children.toArray
             return Some(node)
           }
         } else {
-          var resultNode = constructNode(new Node(symbol, Array.empty[Node]))
+          var resultNode = constructNode(new Node(symbol, Array.empty[Node], parent = Some(node)))
           if (resultNode != None) {
             children += resultNode.get
             if (!i.hasNext) {
