@@ -37,7 +37,7 @@ class Node(var symbol: Symbol,
   }
 
   // This generates a tree using tabs to denote levels; it's quite hideous
-  def getTreeString(level: Int): String = {
+  def getTreeString(level: Int = 0): String = {
     var parentString = "None"
     if (!this.parent.isEmpty)
       parentString = this.parent.get.symbol.toString
@@ -50,7 +50,7 @@ class Node(var symbol: Symbol,
     string.stripLineEnd
   }
 
-  def getSTString(level: Int): String = {
+  def getSTString(level: Int = 0): String = {
     var string = ""
     if (this.symbol != 'Block) {
       if (!children.isEmpty)

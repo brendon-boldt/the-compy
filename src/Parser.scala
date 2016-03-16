@@ -153,16 +153,6 @@ class Parser(val grammar: Grammar) {
     return tokenArray(tokenIndex)
   }
 
-  // This is grammar specific, but I think this is the
-  // best way at least for now.
-  def addSymbol(parent: Node, node: Node): Boolean = {
-    if (parent.tableNode.isEmpty)
-      parent.tableNode = Some(new TableNode())
-    parent.tableNode.get += ((node.children(1).value.get.value,
-        new SymbolEntry(Symbol(node.children(0).value.get.string))))
-    true
-  }
-
   /**
    * Construct a node using the productions as specified by its symbol.
    * The argument node should have its symbol set and have no children.
@@ -189,9 +179,6 @@ class Parser(val grammar: Grammar) {
       val n = applyProduction(node, a, expected)
       if (!n.isEmpty) {
         if (flagVerbose) println("Constructed node " + n.get.symbol)
-        if (n.get.symbol == 'VarDecl) {
-          addSymbol(n.get.getParentNode('Block).get, n.get)
-        }
         return n 
       }
     })

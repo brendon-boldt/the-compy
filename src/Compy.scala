@@ -1,6 +1,7 @@
 package compy
 
 import scala.io.Source
+import scala.collection.mutable.ArrayBuffer
 
 object Main {
 
@@ -9,13 +10,8 @@ object Main {
 
   def main(args: Array[String]) {
     if (!parseOptions(args))
-      // If one of the options is not recognized, terminate the program
       return
     var g = new Grammar
-    /*
-     * The grammar (for lex and parse) is completely specified by
-     * the two functions found below.
-    */
     g = generateKinds(g)
     g = generateRules(g)
     val l = new Lexer(g)
@@ -37,8 +33,11 @@ object Main {
     val p = new Parser(g)
     p.flagVerbose = flagVerbose
     p.setTokenStream(tokenArray)
+    val parseTrees = ArrayBuffer.empty[Node]
     while (!p.isEOS) {
       p.parseTokens
+      if (!p.errorState)
+        parseTrees += p.rootNode
       if (!p.errorState && flagBrackets) {
         println("[" + p.rootNode.getTreeBrackets + "]")
       } else if (p.errorState) {
@@ -46,11 +45,14 @@ object Main {
       } else {
         println("Parsing completed successfully")
       }
-      //
-      // Remove this after debugging
-      //
-      //return;
     }
+
+    for ( t <- parseTrees ) {
+      val analyzer = new Analyzer(t)
+      analyzer.analyzeTree
+      println(analyzer.rootNode.getSTString())
+    }
+    //println(rootNode.getSTString(0))
   }
 
   /**
