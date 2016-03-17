@@ -3,7 +3,7 @@ package compy
 // A CST node is constructed from a symbol, an array of children, and token
 class Node(var symbol: Symbol,
     var children: Array[Node] = Array.empty[Node],
-    var value: Option[Token] = None,
+    var token: Option[Token] = None,
     var parent: Option[Node] = None) {
   
   var tableNode: Option[TableNode] = None
@@ -15,10 +15,13 @@ class Node(var symbol: Symbol,
     //this.children.foreach( _.parent = Some(this) )
   }
 
+  /**
+   * Never returns the node this is initially called on
+   */
   def getParentNode(symbol: Symbol): Option[Node] = {
-    if (this.symbol == symbol)
-      return Some(this)
-    else if (parent.isEmpty)
+    //if (this.symbol == symbol)
+      //return Some(this)
+    /*else*/ if (parent.isEmpty)
       return None
     else if (parent.get.symbol == symbol)
       return parent
@@ -54,7 +57,7 @@ class Node(var symbol: Symbol,
     var string = ""
     if (this.symbol != 'Block) {
       if (!children.isEmpty)
-        string += children.map(_.getSTString(level)+"\n").reduce(_+_)
+        string += children.map(_.getSTString(level)).reduce(_+_)
       string.stripLineEnd
     } else {
       string = ("\t"*level) + this.symbol.toString + "\n"
@@ -71,8 +74,8 @@ class Node(var symbol: Symbol,
   // The README for a link to a visualizer for the bracketed tree
   def getTreeBrackets(): String = {
     var string = this.symbol.toString
-    if (this.value.nonEmpty)
-      string += " " + this.value.get.string
+    if (this.token.nonEmpty)
+      string += " " + this.token.get.string
     if (!children.isEmpty)
       string += children.map("["+_.getTreeBrackets+"]").reduce(_+_)
     string 

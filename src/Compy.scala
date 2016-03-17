@@ -51,6 +51,9 @@ object Main {
       val analyzer = new Analyzer(t)
       analyzer.analyzeTree
       println(analyzer.rootNode.getSTString())
+      if (analyzer.errorState == true) {
+        println(analyzer.errorString)
+      }
     }
     //println(rootNode.getSTString(0))
   }

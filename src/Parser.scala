@@ -213,7 +213,7 @@ class Parser(val grammar: Grammar) {
         if (symbol == currentToken.kind.name) {
           if (flagVerbose) println("Matched " + symbol + " with token " + currentToken)
           children += new Node(symbol, Array.empty[Node], parent = Some(node))
-          children.last.value = Some(currentToken)
+          children.last.token = Some(currentToken)
           if (i.hasNext) {
             if (!advanceToken) {
               eosError(i.next)
