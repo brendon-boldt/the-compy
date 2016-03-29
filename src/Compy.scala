@@ -7,46 +7,34 @@ object Main {
 
   var flagBrackets = false
   var flagVerbose = false
+  
+  // I might not need this variable
+  //var errorState = false
 
   def main(args: Array[String]) {
     if (!parseOptions(args))
       return
-    var g = new Grammar
-    g = generateKinds(g)
-    g = generateRules(g)
-    val l = new Lexer(g)
-    l.flagVerbose = flagVerbose
-    l.string = Source.fromFile(args.last).toStream.mkString
-    val tokenArray = l.getTokenArray
-    if (flagVerbose) {
-      // Print the token steam (after it has been stripped of whitespace, etc.
-      println("Token Steam:")
-      tokenArray.foreach((t: Token) => println(t))
-      println
-    }
-    if (l.errors > 0) {
-      println("Lexing failed due to one or more errors")
-      return
-    } else if (!flagBrackets) {
-      println("Lexing completed successfully")
-    }
-    val p = new Parser(g)
-    p.flagVerbose = flagVerbose
-    p.setTokenStream(tokenArray)
-    val parseTrees = ArrayBuffer.empty[Node]
-    while (!p.isEOS) {
-      p.parseTokens
-      if (!p.errorState)
-        parseTrees += p.rootNode
-      if (!p.errorState && flagBrackets) {
-        println("[" + p.rootNode.getTreeBrackets + "]")
-      } else if (p.errorState) {
-        println("Parsing failed due to one or more errors")
-      } else {
-        println("Parsing completed successfully")
-      }
-    }
 
+    val grammar = generateGrammar
+
+    val lexer = new Lexer(grammar)
+    lexer.flagVerbose = flagVerbose
+    lexer.string = Source.fromFile(args.last).toStream.mkString
+    val tokenArray = lex(lexer)
+    if (tokenArray.isEmpty) return ()
+
+    val parser = new Parser(grammar)
+    parser.flagVerbose = flagVerbose
+    parser.setTokenStream(tokenArray.get)
+
+    val parseTrees = parse(parser)
+    if (parseTrees.isEmpty) return ()
+
+    // Do something with the return value
+    //analyze(parseTrees)
+  }
+
+  private def analyze(parseTrees: Array[Node]): Boolean = {
     for ( t <- parseTrees ) {
       val analyzer = new Analyzer(t)
       analyzer.analyzeTree
@@ -55,7 +43,42 @@ object Main {
         println(analyzer.errorString)
       }
     }
-    //println(rootNode.getSTString(0))
+    return false
+  }
+
+  private def parse(parser: Parser): Array[Node] = {
+    val parseTrees = ArrayBuffer.empty[Node]
+    while (!parser.isEOS) {
+      parser.parseTokens
+      if (!parser.errorState)
+        parseTrees += parser.rootNode
+      if (!parser.errorState && flagBrackets) {
+        println("[" + parser.rootNode.getTreeBrackets + "]")
+      } else if (parser.errorState) {
+        println("Parsing failed due to one or more errors")
+      } else {
+        println("Parsing completed successfully")
+      }
+    }
+    return parseTrees.toArray
+  }
+
+
+  private def lex(lexer: Lexer): Option[Array[Token]] = {
+    val tokenArray = lexer.getTokenArray
+    if (flagVerbose) {
+      println("Token Steam:")
+      tokenArray.foreach((t: Token) => println(t))
+      println
+    }
+
+    if (lexer.errors > 0) {
+      println("Lexing failed due to one or more errors")
+      return None
+    } else if (!flagBrackets) {
+      println("Lexing completed successfully")
+    }
+    return Some(tokenArray)
   }
 
   /**
@@ -89,11 +112,18 @@ object Main {
     true
   }
 
+  private def generateGrammar(): Grammar = {
+    var g = new Grammar
+    g = generateKinds(g)
+    g = generateRules(g)
+    return g
+  }
+
   /**
    * This is where all of the parsing rules are specified.
    * All languge-specific code is set here.
    */
-  def generateRules(g: Grammar): Grammar = {
+  private def generateRules(g: Grammar): Grammar = {
     g.addRule('Program, Array(Array('Block, 'eop)/*, Array('Block)*/))
     g.addRule('Block, Array(Array('lbracket, 'StatementList, 'rbracket)
       ))
@@ -124,7 +154,7 @@ object Main {
   /**
    * Here is the definition of what will be lexed by--er--lex
    */
-  def generateKinds(g: Grammar): Grammar = {
+  private def generateKinds(g: Grammar): Grammar = {
     g.addKind('print,    """(print)""".r)
     g.addKind('type,     """(int|string|boolean)""".r)
     g.addKind('boolval,  """(true|false)""".r)
