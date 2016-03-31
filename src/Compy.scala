@@ -30,6 +30,9 @@ object Main {
     val parseTrees = parse(parser)
     if (parseTrees.isEmpty) return ()
 
+    val builder = new ASTBuilder(parseTrees(0))
+    println(builder.buildAST)
+    
     // Do something with the return value
     //analyze(parseTrees)
   }
