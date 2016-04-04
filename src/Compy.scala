@@ -5,11 +5,9 @@ import scala.collection.mutable.ArrayBuffer
 
 object Main {
 
-  var flagBrackets = false
+  var flagCST = false
+  var flagAST = false
   var flagVerbose = false
-  
-  // I might not need this variable
-  //var errorState = false
 
   def main(args: Array[String]) {
     if (!parseOptions(args))
@@ -31,10 +29,12 @@ object Main {
     if (parseTrees.isEmpty) return ()
 
     val builder = new ASTBuilder(parseTrees(0))
-    println(builder.buildAST)
-    
+    val ast = builder.buildAST
+    if (flagAST)
+      println("[" + ast + "]")
+
     // Do something with the return value
-    //analyze(parseTrees)
+    analyze(Array(ast))
   }
 
   private def analyze(parseTrees: Array[Node]): Boolean = {
@@ -55,7 +55,7 @@ object Main {
       parser.parseTokens
       if (!parser.errorState)
         parseTrees += parser.rootNode
-      if (!parser.errorState && flagBrackets) {
+      if (!parser.errorState && flagCST) {
         println("[" + parser.rootNode.getTreeBrackets + "]")
       } else if (parser.errorState) {
         println("Parsing failed due to one or more errors")
@@ -78,7 +78,7 @@ object Main {
     if (lexer.errors > 0) {
       println("Lexing failed due to one or more errors")
       return None
-    } else if (!flagBrackets) {
+    } else if (!flagCST) {
       println("Lexing completed successfully")
     }
     return Some(tokenArray)
@@ -91,7 +91,8 @@ object Main {
     for (option <- args.take(args.size-1)) {
       if (option.take(2) == "--") {
         option.substring(2,option.length) match {
-          case "brackets" => flagBrackets = true
+          case "cst" => flagCST = true
+          case "ast" => flagAST = true
           case "verbose" => flagVerbose = true
           case _ => {
             println("Unknown option " + option.substring(2,option.length))
@@ -101,7 +102,8 @@ object Main {
       } else if (option.head == '-') {
         option.tail.foreach((c:Char) => {
           c match {
-            case 'b' => flagBrackets = true
+            case 'c' => flagCST = true
+            case 'a' => flagAST = true
             case 'v' => flagVerbose = true
             case _ => {
               println("Unknown option " + c)

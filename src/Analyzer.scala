@@ -22,7 +22,7 @@ class Analyzer(var rootNode: Node) {
 
   private def booleanExprError(node: Node, var1: SymbolEntry, var2: SymbolEntry) = {
     errorState = true
-    errorString += ("Semantic Error: types " + var1.varType + " and " + var2.varType
+    errorString += ("Semantic Error: types " + var1.varString + " and " + var2.varString
         + " are not comparable; found at line " + node.token.get.line + "\n")
   }
 
@@ -61,8 +61,6 @@ class Analyzer(var rootNode: Node) {
     return variable
   }
 
-  // This is grammar specific, but I think this is the
-  // best way at least for now.
   private def addSymbol(parent: Node, node: Node): Boolean = {
     if (parent.tableNode.isEmpty)
       parent.tableNode = Some(new TableNode())
@@ -72,20 +70,27 @@ class Analyzer(var rootNode: Node) {
       return false
     }
     parent.tableNode.get += ((id,
-        new SymbolEntry(Symbol(node.children(0).token.get.string))))
+        new SymbolEntry(node.children(1).token.get,
+          Symbol(node.children(0).token.get.string))))
     true
   }
 
   private def checkBooleanExpr(node: Node): Boolean = {
+    val arg1 = node.children(0)
+    val arg2 = node.children(1)
+    val var1 = getVariable(arg1)
+    val var2 = getVariable(arg2)
+    /*
     val arg1 = node.children(1).children(0)
     val arg2 = node.children(3).children(0)
     val var1 = getVariable(arg1)
     val var2 = getVariable(arg2)
+    */
     var comparable = false
     if (!var1.isEmpty && !var2.isEmpty) {
       comparable = var1.get.varType == var2.get.varType
       if (!comparable)
-        booleanExprError(node.children(2).children(0), var1.get, var2.get)
+        booleanExprError(node, var1.get, var2.get)
     }
     return comparable
   }
@@ -96,11 +101,36 @@ class Analyzer(var rootNode: Node) {
       return false
     var valid = false
     variable.get.varType match {
-      case 'int => valid = (node.children(2).children(0).symbol == 'IntExpr)
+      case 'int => valid = (getType(node.children(1)) == 'int)
+      case 'string => valid = true
+      case 'boolean => valid = (getType(node.children(1)) == 'boolean)
       case _ => {}
     }
-    println(valid)
     return valid
+  }
+
+  private def getType(node: Node): Symbol = node.symbol match {
+    case 'id => {
+      val se = getVariable(node)
+      if (se.isEmpty)
+        return 'unit
+      else {
+        return se.get.varType
+      }
+    }
+    case 'intop => {
+      val varType = getType(node.children(1))
+      if (varType == 'int)
+        return 'int
+      else
+        return 'string
+    }
+    case 'digit => return 'int
+    case 'eq  => return 'boolean
+    case 'neq => return 'boolean
+    case 'stringlit => return 'string
+    case 'boolval => return 'boolean
+    case _ => return 'unit
   }
 
   def analyzeTree = {
@@ -111,10 +141,13 @@ class Analyzer(var rootNode: Node) {
    * An in-order traversal of the parse tree.
    */
   private def analyze(node: Node): Unit = {
+    //println(node.symbol + " => " + getType(node))
     node.symbol match {
       case 'VarDecl => addSymbol(node.getParentNode('Block).get, node)
       case 'id => checkDeclared(node)
-      case 'BooleanExpr => println(checkBooleanExpr(node))
+      case 'eq => println("eq: " + checkBooleanExpr(node))
+      case 'neq => println("neq: " + checkBooleanExpr(node))
+      case 'AssignStatement => println("Assign: " + checkAssign(node))
       case _ => {}
     }
     /*

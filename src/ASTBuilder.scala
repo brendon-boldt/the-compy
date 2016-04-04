@@ -81,21 +81,14 @@ class ASTBuilder(val cst: Node) {
 
   def buildAST(): Node = {
     rootNode = Some(analyze(cst)(0))
-
-    println
     return rootNode.get
-    //return rootNode.get
   }
 
   private def analyze(node: Node): Array[Node] = {
-    println("Analyzing " + node.symbol)
     val results = ASTBuilder.applyRule(node)
-    //results.foreach((n: Node) => analyze(n))
     results.foldLeft(Array.empty[Node])((arr: Array[Node], n: Node) => {
-      println("FA" + n.symbol)
       arr ++ analyze(n)
     })
-    //results.foreach((n: Node) => println(n.symbol))
     node.setChildren(results)
     return results
   }
