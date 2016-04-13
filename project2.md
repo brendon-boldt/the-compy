@@ -11,7 +11,7 @@ code, and anything else you think might be important.
 - Type-check the source code using the AST. Catch . . . 
   - ~~undeclared identifiers,~~ 
   - ~~redeclared identifiers in the same scope,~~
-  - type mismatches, 
+  - ~~type mismatches,~~
   - and anything else that might go wrong.  
 - ~~Issue warnings about declared but unused identifiers.~~
 - ~~Issue warnings about use of uninitialized variables but do not treat them as errors.~~ 

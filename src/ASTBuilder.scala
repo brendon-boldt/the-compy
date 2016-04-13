@@ -33,6 +33,10 @@ object ASTBuilder {
         return applyRule(c(1)).:+(c(2))
       }
 
+      case 'PrintStatement => {
+        return applyRule(c(2))
+      }
+
       case 'Expr => {
         if (c(0).symbol == 'id)
           return Array(c(0))

@@ -15,6 +15,8 @@ object Main {
 
     val grammar = generateGrammar
 
+    // Note to self: eventually make lex separate token streams
+    // based on the eop token
     val lexer = new Lexer(grammar)
     lexer.flagVerbose = flagVerbose
     lexer.string = Source.fromFile(args.last).toStream.mkString
@@ -34,6 +36,7 @@ object Main {
       println("[" + ast + "]")
 
     // Do something with the return value
+    // ^^ I probably don't need to
     analyze(Array(ast))
   }
 
@@ -41,13 +44,15 @@ object Main {
     for ( t <- parseTrees ) {
       val analyzer = new Analyzer(t)
       analyzer.analyzeTree
-      println(analyzer.rootNode.getSTString())
+      //println(analyzer.rootNode.getSTString())
+      /*
       if (analyzer.errorState == true) {
         println(analyzer.errorString)
       }
       if (analyzer.warningState == true) {
         println(analyzer.warningString)
       }
+      */
     }
     return false
   }

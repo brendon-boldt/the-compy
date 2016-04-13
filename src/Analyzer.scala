@@ -4,6 +4,13 @@ import scala.collection.mutable.ArrayBuffer
 
 object Analyzer {
 
+  var flagVerbose = false
+
+  def vPrint(s: String) = {
+    if (flagVerbose)
+      println(s)
+  }
+
   /**
    * I have not tested this thuroughly, but it probably works.
    */
@@ -49,6 +56,8 @@ object Analyzer {
 }
 
 class Analyzer(var rootNode: Node) {
+
+  var flagVerbose
   
   var errorState = false
   var errorString = ""
@@ -68,7 +77,7 @@ class Analyzer(var rootNode: Node) {
     if (!node.tableNode.isEmpty) {
       // Sort this by line number
       node.tableNode.get.foreach( (tu:(String, SymbolEntry)) => {
-        println(tu._2.uses)
+        //println(tu._2.uses)
         if (!tu._2.isUsed)
           unusedWarning(tu._2)
       })
@@ -175,7 +184,6 @@ class Analyzer(var rootNode: Node) {
     if (variable.isEmpty)
       return false
     var valid = false
-    //val assignType = Analyzer.getType(node.children(1))
     val assignType = checkExprType(node.children(1))
     variable.get.varType match {
       // The reason why 'invalidType is considered not an error here is because
@@ -201,23 +209,32 @@ class Analyzer(var rootNode: Node) {
     return true
   }
 
+  private def checkPrint(node: Node): Boolean = {
+    checkExprType(node.children(0))
+    return true
+  }
+
 
   def analyzeTree = {
     analyze(rootNode)
+    if (errorState)
+      println(errorString.stripLineEnd)
+    if (warningState)
+      println(warningString.stripLineEnd)
   }
 
   /**
    * An in-order traversal of the parse tree.
    */
   private def analyze(node: Node): Unit = {
-    //println(node.symbol + " => " + getType(node))
     node.symbol match {
       case 'VarDecl => addSymbol(node.getParentNode('Block).get, node)
       case 'id => checkDeclared(node)
-      case 'eq => println("eq: " + checkBooleanExpr(node))
-      case 'neq => println("neq: " + checkBooleanExpr(node))
-      case 'AssignStatement => println("Assign: " + checkAssign(node))
-      case 'intop => println("intop: " + checkIntop(node))
+      case 'eq => checkBooleanExpr(node)
+      case 'neq => checkBooleanExpr(node)
+      case 'AssignStatement => checkAssign(node)
+      case 'PrintStatement => checkPrint(node)
+      case 'intop => checkIntop(node)
       case _ => {}
     }
 
