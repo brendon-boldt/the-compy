@@ -2,11 +2,88 @@ package compy
 
 import scala.collection.mutable.ArrayBuffer
 
+object Analyzer {
+
+  /**
+   * I have not tested this thuroughly, but it probably works.
+   */
+  private def getVariable(node: Node): Option[SymbolEntry] = {
+    if (node.symbol != 'id) {
+      throw new Exception("Cannot get variable with a non-ID node")
+    }
+    var parent = node.getParentNode('Block)
+    //var declared = false
+    var variable: Option[SymbolEntry] = None
+    while (variable.isEmpty && !parent.isEmpty) {
+      if (!parent.get.tableNode.isEmpty) {
+        variable = parent.get.tableNode.get.get(node.token.get.string)
+      }
+      parent = parent.get.getParentNode('Block)
+    }
+    return variable
+  }
+
+  private def getType(node: Node): Symbol = node.symbol match {
+    case 'id => {
+      val se = getVariable(node)
+      if (se.isEmpty)
+        return 'unit
+      else {
+        return se.get.varType
+      }
+    }
+    case 'intop => {
+      val varType = getType(node.children(1))
+      if (varType == 'int)
+        return 'int
+      else
+        return 'invalidType
+    }
+    case 'digit => return 'int
+    case 'eq  => return 'boolean
+    case 'neq => return 'boolean
+    case 'stringlit => return 'string
+    case 'boolval => return 'boolean
+    case _ => return 'unit
+  }
+}
+
 class Analyzer(var rootNode: Node) {
   
   var errorState = false
-  //val errors = ArrayBuffer.empty[
   var errorString = ""
+  var warningState = false
+  var warningString = ""
+
+  private def unusedWarning(se: SymbolEntry) {
+    warningState = true
+    warningString += ("Semantic Warning: variable " + se.token.value
+        + " was not used; declared at line " + se.token.line + "\n")
+  }
+
+  private def checkUnused(node: Node) = {
+    if (node.symbol != 'Block) {
+      throw new Exception("Cannot check unsed on a non-block node")
+    }
+    if (!node.tableNode.isEmpty) {
+      // Sort this by line number
+      node.tableNode.get.foreach( (tu:(String, SymbolEntry)) => {
+        println(tu._2.uses)
+        if (!tu._2.isUsed)
+          unusedWarning(tu._2)
+      })
+    }
+  }
+
+  private def uninitializedWarning(node: Node) = {
+    warningState = true
+    warningString += ("Semantic Warning: variable " + node.token.get.value
+        + " was not initialized; used at line " + node.token.get.line + "\n")
+  }
+
+  private def checkInitialized(se: SymbolEntry): Boolean = {
+    return se.initialized
+  }
 
   private def redeclarationError(node: Node) = {
     errorState = true
@@ -26,39 +103,30 @@ class Analyzer(var rootNode: Node) {
         + " are not comparable; found at line " + node.token.get.line + "\n")
   }
 
-  private def checkDeclared(node: Node): Boolean = {
-    val declared = !getVariable(node).isEmpty
-    if (!declared)
-      undeclaredError(node)
-    return declared
-    /*
-    var parent = node.getParentNode('Block)
-    var declared = false
-    while (!declared && !parent.isEmpty) {
-      if (!parent.get.tableNode.isEmpty)
-        declared = parent.get.tableNode.get.contains(node.token.get.string)
-      parent = parent.get.getParentNode('Block)
-    }
-    if (!declared)
-      undeclaredError(node)
-    return declared
-    */
+  private def assignmentError(node: Node, varType: Symbol) = {
+    errorState = true
+    errorString += ("Semantic Error: " + Analyzer.getType(node.children(1)).name
+        + " cannot be assigned to " + node.children(0).token.get.value + " of type "
+        + varType.name + "; found on line " + node.children(0).token.get.line + "\n")
   }
 
-  /**
-   * I have not tested this thuroughly, but it probably works.
-   */
-  private def getVariable(node: Node): Option[SymbolEntry] = {
-    var parent = node.getParentNode('Block)
-    //var declared = false
-    var variable: Option[SymbolEntry] = None
-    while (variable.isEmpty && !parent.isEmpty) {
-      if (!parent.get.tableNode.isEmpty) {
-        variable = parent.get.tableNode.get.get(node.token.get.string)
-      }
-      parent = parent.get.getParentNode('Block)
+  private def intopError(node: Node) {
+    errorState = true
+    errorString += ("Semantic Error: cannot add type int to type "
+        + Analyzer.getType(node.children(1)).name + "; found on line "
+        + node.children(1).token.get.line)
+  }
+
+
+  private def checkDeclared(node: Node): Boolean = {
+    val varOpt = Analyzer.getVariable(node)
+    val declared = !varOpt.isEmpty
+    if (!declared)
+      undeclaredError(node)
+    else {
+      varOpt.get.uses += 1
     }
-    return variable
+    return declared
   }
 
   private def addSymbol(parent: Node, node: Node): Boolean = {
@@ -75,63 +143,64 @@ class Analyzer(var rootNode: Node) {
     true
   }
 
+  /**
+   * Similar to getType, except it checks that the variable is initialized
+   */
+  private def checkExprType(node: Node): Symbol = {
+    if (node.symbol == 'id) {
+      val vari = Analyzer.getVariable(node) 
+      if (!vari.isEmpty){
+        if (!checkInitialized(vari.get))
+          uninitializedWarning(node)
+        return vari.get.varType
+      }
+      return 'unit
+    } else 
+      return Analyzer.getType(node)
+  }
+
   private def checkBooleanExpr(node: Node): Boolean = {
     val arg1 = node.children(0)
     val arg2 = node.children(1)
-    val var1 = getVariable(arg1)
-    val var2 = getVariable(arg2)
-    /*
-    val arg1 = node.children(1).children(0)
-    val arg2 = node.children(3).children(0)
-    val var1 = getVariable(arg1)
-    val var2 = getVariable(arg2)
-    */
-    var comparable = false
-    if (!var1.isEmpty && !var2.isEmpty) {
-      comparable = var1.get.varType == var2.get.varType
-      if (!comparable)
-        booleanExprError(node, var1.get, var2.get)
-    }
-    return comparable
+    var type1 = checkExprType(arg1)
+    var type2 = checkExprType(arg2)
+
+    if (type1 == 'unit || type2 == 'unit)
+      return false
+    return Analyzer.getType(arg1) == Analyzer.getType(arg2)  
   }
 
   private def checkAssign(node: Node): Boolean = {
-    val variable = getVariable(node.children(0))
+    val variable = Analyzer.getVariable(node.children(0))
     if (variable.isEmpty)
       return false
     var valid = false
+    //val assignType = Analyzer.getType(node.children(1))
+    val assignType = checkExprType(node.children(1))
     variable.get.varType match {
-      case 'int => valid = (getType(node.children(1)) == 'int)
-      case 'string => valid = true
-      case 'boolean => valid = (getType(node.children(1)) == 'boolean)
+      // The reason why 'invalidType is considered not an error here is because
+      // the type error would already have been registered as an intop error and
+      // we do not want to report this twice.
+      case 'int => valid = (assignType == 'int || assignType == 'invalidType)
+      case 'string => valid = (assignType == 'string)
+      case 'boolean => valid = (assignType == 'boolean)
       case _ => {}
     }
+    if (!valid)
+      assignmentError(node, variable.get.varType)
+    variable.get.initialized = true
     return valid
   }
 
-  private def getType(node: Node): Symbol = node.symbol match {
-    case 'id => {
-      val se = getVariable(node)
-      if (se.isEmpty)
-        return 'unit
-      else {
-        return se.get.varType
-      }
+  private def checkIntop(node: Node): Boolean = {
+    if (checkExprType(node.children(1)) != 'int) {
+    //if (Analyzer.getType(node.children(1)) != 'int) {
+      intopError(node: Node)
+      return false
     }
-    case 'intop => {
-      val varType = getType(node.children(1))
-      if (varType == 'int)
-        return 'int
-      else
-        return 'string
-    }
-    case 'digit => return 'int
-    case 'eq  => return 'boolean
-    case 'neq => return 'boolean
-    case 'stringlit => return 'string
-    case 'boolval => return 'boolean
-    case _ => return 'unit
+    return true
   }
+
 
   def analyzeTree = {
     analyze(rootNode)
@@ -148,18 +217,18 @@ class Analyzer(var rootNode: Node) {
       case 'eq => println("eq: " + checkBooleanExpr(node))
       case 'neq => println("neq: " + checkBooleanExpr(node))
       case 'AssignStatement => println("Assign: " + checkAssign(node))
+      case 'intop => println("intop: " + checkIntop(node))
       case _ => {}
     }
-    /*
-    if (node.symbol == 'VarDecl) {
-      addSymbol(node.getParentNode('Block).get, node)
-    } else if (node.symbol == 'id) {
-      checkDeclared(node)
-    }
-    */
+
     if (!node.children.isEmpty)
       node.children.foreach((child: Node) => {
         analyze(child)
       })
+
+    node.symbol match {
+      case 'Block => checkUnused(node)
+      case _ => {}
+    }
   }
 }

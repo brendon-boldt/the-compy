@@ -1,72 +1,63 @@
 package compy
 
 object ASTBuilder {
-  /*
-  val rules = collection.immutable.HashMap[Symbol, Node => Option[Node]](
-    
-    'Program -> (node: Node) => {
-      val block = node.children(0)
-      block.setChildren(block.children.slice(1,2))
-      return block
-    }
-  )
-  */
 
   def applyRule(node: Node): Array[Node] = {
+    def c = node.children
     node.symbol match {
       case 'Program => {
-        val block = node.children(0)
+        val block = c(0)
         return Array(block)
       }
 
       case 'Block => {
-        node.setChildren(ASTBuilder.applyRule(node.children(1)))
-        return node.children
+        node.setChildren(applyRule(c(1)))
+        return c
       }
       
       case 'StatementList => {
-        if (node.children.size == 1)
+        if (c.size == 1)
           return Array.empty[Node]
-        return ASTBuilder.applyRule(node.children(1)).+:(node.children(0).children(0))
+        return applyRule(c(1)).+:(c(0).children(0))
       }
 
       case 'AssignStatement => {
-        return ASTBuilder.applyRule(node.children(2)).+:(node.children(0))
+        return applyRule(c(2)).+:(c(0))
       }
 
       case 'WhileStatement => {
-        return ASTBuilder.applyRule(node.children(1)).:+(node.children(2))
+        return applyRule(c(1)).:+(c(2))
       }
 
       case 'IfStatement => {
-        return ASTBuilder.applyRule(node.children(1)).:+(node.children(2))
+        return applyRule(c(1)).:+(c(2))
       }
 
       case 'Expr => {
-        if (node.children(0).symbol == 'id)
-          return Array(node.children(0))
-        return ASTBuilder.applyRule(node.children(0))
+        if (c(0).symbol == 'id)
+          return Array(c(0))
+        return applyRule(c(0))
       }
 
       case 'IntExpr => {
-        if (node.children.size == 1)
-          return node.children
-        val intop = node.children(1)
-        intop.setChildren(ASTBuilder.applyRule(node.children(2)).+:(node.children(0)))
+        if (c.size == 1)
+          return c
+        val intop = c(1)
+        intop.setChildren(applyRule(c(2)).+:(c(0)))
         return Array(intop)
       }
   
       case 'BooleanExpr => {
-        if (node.children.size == 1)
-          return node.children
-        val boolop = node.children(2).children(0)
+        if (c.size == 1)
+          return c
+        val boolop = c(2).children(0)
         boolop.setChildren(
-          ASTBuilder.applyRule(node.children(1)) ++ ASTBuilder.applyRule(node.children(3))
+          applyRule(c(1)) ++ applyRule(c(3))
         )
         return Array(boolop)
       }
     
-      case _ => return node.children
+      case _ => return c
     }
   }
 }

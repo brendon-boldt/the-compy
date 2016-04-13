@@ -45,6 +45,9 @@ object Main {
       if (analyzer.errorState == true) {
         println(analyzer.errorString)
       }
+      if (analyzer.warningState == true) {
+        println(analyzer.warningString)
+      }
     }
     return false
   }

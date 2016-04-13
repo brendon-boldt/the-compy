@@ -16,6 +16,12 @@ object SymbolEntry {
 class SymbolEntry (val token: Token, val varType: Symbol) {
 
   val varString = SymbolEntry.getTypeString(varType)
+  var uses = 0
+
+  def isUsed = uses > 1
+  
+  var initialized = false
+
 
   override def toString(): String = {
     varType.toString
