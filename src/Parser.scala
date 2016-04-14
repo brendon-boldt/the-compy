@@ -7,6 +7,10 @@ import scala.collection.mutable.ArrayBuffer
 class Parser(val grammar: Grammar) {
 
   var flagVerbose = false
+  def vPrint(s: String) = {
+    if (flagVerbose)
+      println("PARSER: " + s)
+  }
 
   var tokenArray = Array[Token]()
   var tokenIndex = 0
@@ -51,8 +55,7 @@ class Parser(val grammar: Grammar) {
 
     if (errorState) {
       advanceToNextProgram
-      if (flagVerbose)
-        println("Parse failed; advancing to next program")
+      vPrint("Parse failed; advancing to next program")
       println(errorString.stripLineEnd)
     } else {
       //println(rootNode.getSTString(0))
@@ -126,8 +129,7 @@ class Parser(val grammar: Grammar) {
   }
   
   def advanceToEndOfBlock = {
-    if (flagVerbose)
-      println("Skipping to next block")
+    vPrint("Skipping to next block")
     var depth = 1
     while (depth > 0) {
       if (!advanceToken)
@@ -162,7 +164,7 @@ class Parser(val grammar: Grammar) {
    */
   def constructNode(node: Node): Option[Node] = {
     val s = node.symbol
-    if (flagVerbose) println("Attempting to construct node for " + s)
+    vPrint("Attempting to construct node for " + s)
     var rule = grammar.rules.getOrElse(s, Rule.empty)
     if (rule.name == 'empty) {
       if (s == currentToken.kind.name) {
@@ -178,7 +180,7 @@ class Parser(val grammar: Grammar) {
     prods.foreach((a: Array[Symbol]) => {
       val n = applyProduction(node, a, expected)
       if (!n.isEmpty) {
-        if (flagVerbose) println("Constructed node " + n.get.symbol)
+        vPrint("Constructed node " + n.get.symbol)
         return n 
       }
     })
@@ -186,10 +188,7 @@ class Parser(val grammar: Grammar) {
     if (!expected.isEmpty) {
       expected.map((t:(Symbol, Token)) => tokenError(t._1, t._2))
     }
-    if (flagVerbose) {
-      println("Node construction failed for " + s)
-      println("--> " + expected.mkString)
-    }
+    vPrint("Node construction failed for " + s)
     return None
   }
 
@@ -203,15 +202,14 @@ class Parser(val grammar: Grammar) {
       val i = a.iterator
       val children = ArrayBuffer.empty[Node]
       if (!i.hasNext) {
-        if (flagVerbose)
-          println("Matched epsilon (null string)")
+        vPrint("Matched epsilon (null string)")
         node.setChildren(Array(new Node('epsilon, Array.empty[Node], parent = Some(node))))
         return Some(node)
       }
       while (i.hasNext) {
         val symbol = i.next
         if (symbol == currentToken.kind.name) {
-          if (flagVerbose) println("Matched " + symbol + " with token " + currentToken)
+          vPrint("Matched " + symbol + " with token " + currentToken)
           children += new Node(symbol, Array.empty[Node], parent = Some(node))
           children.last.token = Some(currentToken)
           if (i.hasNext) {
@@ -241,10 +239,8 @@ class Parser(val grammar: Grammar) {
               expected += new Tuple2(symbol, currentToken)
               //}
               if (!children.isEmpty) {
-                if (flagVerbose) {
-                  println("Destructing " + symbol + "; bactracking "
+                vPrint("Destructing " + symbol + "; bactracking "
                     + children.map(_.getLength).reduce(_+_) + " tokens")
-                }
                 var consumedTokens = children.map(_.getLength).reduce(_+_)
                 if (symbol == 'eop)
                   backtrack(consumedTokens-1)

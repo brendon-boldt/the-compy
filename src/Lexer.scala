@@ -6,6 +6,10 @@ import scala.collection.mutable.ArrayBuffer
 class Lexer(val grammar: Grammar) {
 
   var flagVerbose = false
+  def vPrint(s: String) = {
+    if (flagVerbose)
+      println("LEXER: " + s)
+  }
   
   // A string which will contain the source file bytes
   var string = ""

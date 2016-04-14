@@ -8,7 +8,7 @@ object Analyzer {
 
   def vPrint(s: String) = {
     if (flagVerbose)
-      println(s)
+      println("ANALYZER: " + s)
   }
 
   /**
@@ -18,8 +18,8 @@ object Analyzer {
     if (node.symbol != 'id) {
       throw new Exception("Cannot get variable with a non-ID node")
     }
+    //vPrint("Attempting to get variable " + node.token.get.string)
     var parent = node.getParentNode('Block)
-    //var declared = false
     var variable: Option[SymbolEntry] = None
     while (variable.isEmpty && !parent.isEmpty) {
       if (!parent.get.tableNode.isEmpty) {
@@ -57,8 +57,13 @@ object Analyzer {
 
 class Analyzer(var rootNode: Node) {
 
-  var flagVerbose
-  
+  var flagVerbose = false
+
+  def vPrint(s: String) = {
+    if (flagVerbose)
+      println("ANALYZER: " + s)
+  }
+
   var errorState = false
   var errorString = ""
   var warningState = false
@@ -77,7 +82,7 @@ class Analyzer(var rootNode: Node) {
     if (!node.tableNode.isEmpty) {
       // Sort this by line number
       node.tableNode.get.foreach( (tu:(String, SymbolEntry)) => {
-        //println(tu._2.uses)
+        vPrint("Checking if " + tu._1 + " has been used: " + tu._2.isUsed)
         if (!tu._2.isUsed)
           unusedWarning(tu._2)
       })
@@ -91,6 +96,7 @@ class Analyzer(var rootNode: Node) {
   }
 
   private def checkInitialized(se: SymbolEntry): Boolean = {
+    vPrint("Checking if " + se + " has been initialized: " + se.initialized)
     return se.initialized
   }
 
@@ -135,6 +141,7 @@ class Analyzer(var rootNode: Node) {
     else {
       varOpt.get.uses += 1
     }
+    vPrint("Checking if " + node.token.get.string + " has been declared: " + declared)
     return declared
   }
 
@@ -146,6 +153,7 @@ class Analyzer(var rootNode: Node) {
       redeclarationError(node.children(1))
       return false
     }
+    vPrint("Adding " + id + " to the symbol table")
     parent.tableNode.get += ((id,
         new SymbolEntry(node.children(1).token.get,
           Symbol(node.children(0).token.get.string))))
@@ -169,6 +177,7 @@ class Analyzer(var rootNode: Node) {
   }
 
   private def checkBooleanExpr(node: Node): Boolean = {
+    vPrint("Checking boolean expression " + node)
     val arg1 = node.children(0)
     val arg2 = node.children(1)
     var type1 = checkExprType(arg1)
@@ -197,15 +206,17 @@ class Analyzer(var rootNode: Node) {
     if (!valid)
       assignmentError(node, variable.get.varType)
     variable.get.initialized = true
+    vPrint("Checking assignment " + node + ": " + valid)
     return valid
   }
 
   private def checkIntop(node: Node): Boolean = {
     if (checkExprType(node.children(1)) != 'int) {
-    //if (Analyzer.getType(node.children(1)) != 'int) {
       intopError(node: Node)
+      vPrint("Checking intop " + node + ": false")
       return false
     }
+    vPrint("Checking intop " + node + ": true")
     return true
   }
 
@@ -227,12 +238,12 @@ class Analyzer(var rootNode: Node) {
    * An in-order traversal of the parse tree.
    */
   private def analyze(node: Node): Unit = {
+    vPrint("Analyzing node " + node.symbol)
     node.symbol match {
       case 'VarDecl => addSymbol(node.getParentNode('Block).get, node)
       case 'id => checkDeclared(node)
       case 'eq => checkBooleanExpr(node)
       case 'neq => checkBooleanExpr(node)
-      case 'AssignStatement => checkAssign(node)
       case 'PrintStatement => checkPrint(node)
       case 'intop => checkIntop(node)
       case _ => {}
@@ -245,6 +256,7 @@ class Analyzer(var rootNode: Node) {
 
     node.symbol match {
       case 'Block => checkUnused(node)
+      case 'AssignStatement => checkAssign(node)
       case _ => {}
     }
   }

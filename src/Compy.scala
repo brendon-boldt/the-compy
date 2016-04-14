@@ -7,6 +7,7 @@ object Main {
 
   var flagCST = false
   var flagAST = false
+  var flagST = false
   var flagVerbose = false
 
   def main(args: Array[String]) {
@@ -31,6 +32,8 @@ object Main {
     if (parseTrees.isEmpty) return ()
 
     val builder = new ASTBuilder(parseTrees(0))
+    ASTBuilder.flagVerbose = flagVerbose
+    builder.flagVerbose = flagVerbose
     val ast = builder.buildAST
     if (flagAST)
       println("[" + ast + "]")
@@ -41,18 +44,13 @@ object Main {
   }
 
   private def analyze(parseTrees: Array[Node]): Boolean = {
+    Analyzer.flagVerbose = flagVerbose
     for ( t <- parseTrees ) {
       val analyzer = new Analyzer(t)
+      analyzer.flagVerbose = flagVerbose
       analyzer.analyzeTree
-      //println(analyzer.rootNode.getSTString())
-      /*
-      if (analyzer.errorState == true) {
-        println(analyzer.errorString)
-      }
-      if (analyzer.warningState == true) {
-        println(analyzer.warningString)
-      }
-      */
+      if (flagST)
+        println(t.getSTString())
     }
     return false
   }
@@ -73,7 +71,6 @@ object Main {
     }
     return parseTrees.toArray
   }
-
 
   private def lex(lexer: Lexer): Option[Array[Token]] = {
     val tokenArray = lexer.getTokenArray
@@ -101,6 +98,7 @@ object Main {
         option.substring(2,option.length) match {
           case "cst" => flagCST = true
           case "ast" => flagAST = true
+          case "st" => flagST = true
           case "verbose" => flagVerbose = true
           case _ => {
             println("Unknown option " + option.substring(2,option.length))
@@ -112,6 +110,7 @@ object Main {
           c match {
             case 'c' => flagCST = true
             case 'a' => flagAST = true
+            case 's' => flagST = true
             case 'v' => flagVerbose = true
             case _ => {
               println("Unknown option " + c)

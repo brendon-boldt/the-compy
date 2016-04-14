@@ -53,21 +53,29 @@ class Node(var symbol: Symbol,
     string.stripLineEnd
   }
 
-  def getSTString(level: Int = 0): String = {
+  def getSTString(name: String = "SymbolTable.0"): String = {
     var string = ""
     if (this.symbol != 'Block) {
-      if (!children.isEmpty)
-        string += children.map(_.getSTString(level)).reduce(_+_)
-      string.stripLineEnd
+      if (!children.isEmpty) {
+        //string += children.map(_.getSTString(level)).reduce(_+_)
+        string += children.map(_.getSTString(name)).reduce(_+_)
+      }
+      string
     } else {
-      string = ("\t"*level) + this.symbol.toString + "\n"
+      string = "\n" + name + "\n"
       if (!this.tableNode.isEmpty) {
         //string += ("\t"*level)+this.tableNode.get.toString + "\n"
         string += this.tableNode.get.toString
       }
-      if (!children.isEmpty)
-        string += children.map(_.getSTString(level+1)).reduce(_+_)
-      string.stripLineEnd
+      if (!children.isEmpty) {
+        var index = 0
+        children.foreach((n: Node) => {
+          string += n.getSTString(name + "." + index)
+          if (n.symbol == 'Block)
+            index += 1
+        })
+      }
+      string
     }
   }
 

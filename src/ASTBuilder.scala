@@ -2,8 +2,15 @@ package compy
 
 object ASTBuilder {
 
+  var flagVerbose = false
+  def vPrint(s: String) = {
+    if (flagVerbose)
+      println("AST: " + s)
+  }
+
   def applyRule(node: Node): Array[Node] = {
     def c = node.children
+    vPrint("Applying AST rule for " + node.symbol)
     node.symbol match {
       case 'Program => {
         val block = c(0)
@@ -67,6 +74,12 @@ object ASTBuilder {
 }
 
 class ASTBuilder(val cst: Node) {
+
+  var flagVerbose = false
+  def vPrint(s: String) = {
+    if (flagVerbose)
+      println("AST: " + s)
+  }
 
   private var rootNode: Option[Node] = None
 
