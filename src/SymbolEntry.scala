@@ -12,7 +12,10 @@ object SymbolEntry {
   }
 }
 
-
+/**
+ * Represents an entry in the symbol table; keeps track of line
+ * numbers, number of uses, initialization, etc.
+ */
 class SymbolEntry (val token: Token, val varType: Symbol) {
 
   val varString = SymbolEntry.getTypeString(varType)

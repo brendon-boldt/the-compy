@@ -1,0 +1,10 @@
+{
+  int x
+  boolean b
+  string x
+  b = 2
+  while ( s == x ) {
+    x = 2 + b
+  }
+  print(s)
+}$

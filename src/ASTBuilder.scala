@@ -8,6 +8,9 @@ object ASTBuilder {
       println("AST: " + s)
   }
 
+  /**
+   * Applies a transformation rule to the CST
+   */
   def applyRule(node: Node): Array[Node] = {
     def c = node.children
     vPrint("Applying AST rule for " + node.symbol)
@@ -92,8 +95,12 @@ class ASTBuilder(val cst: Node) {
     return rootNode.get
   }
 
+  /**
+   * Applies transformations to the CST to make the AST
+   */
   private def analyze(node: Node): Array[Node] = {
     val results = ASTBuilder.applyRule(node)
+    // Analyze all of the children of the current node
     results.foldLeft(Array.empty[Node])((arr: Array[Node], n: Node) => {
       arr ++ analyze(n)
     })

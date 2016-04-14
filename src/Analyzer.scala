@@ -6,12 +6,16 @@ object Analyzer {
 
   var flagVerbose = false
 
+  /**
+   * Print only in verbose mode
+   */
   def vPrint(s: String) = {
     if (flagVerbose)
       println("ANALYZER: " + s)
   }
 
   /**
+   * Gets the variable specified by the node
    * I have not tested this thuroughly, but it probably works.
    */
   private def getVariable(node: Node): Option[SymbolEntry] = {
@@ -30,6 +34,10 @@ object Analyzer {
     return variable
   }
 
+  /**
+   * Gets the type of any node. Most useful for ID's, intops,
+   * and other expressions
+   */
   private def getType(node: Node): Symbol = node.symbol match {
     case 'id => {
       val se = getVariable(node)
@@ -75,6 +83,9 @@ class Analyzer(var rootNode: Node) {
         + " was not used; declared at line " + se.token.line + "\n")
   }
 
+  /**
+   * At the end of a block, this checks whether each variable has been used
+   */
   private def checkUnused(node: Node) = {
     if (node.symbol != 'Block) {
       throw new Exception("Cannot check unsed on a non-block node")
@@ -129,31 +140,42 @@ class Analyzer(var rootNode: Node) {
     errorState = true
     errorString += ("Semantic Error: cannot add type int to type "
         + Analyzer.getType(node.children(1)).name + "; found on line "
-        + node.children(1).token.get.line)
+        + node.children(1).token.get.line + "\n")
   }
 
 
+  /**
+   * Checks if the variable specified by the (ID) node has been declared
+   */
   private def checkDeclared(node: Node): Boolean = {
     val varOpt = Analyzer.getVariable(node)
     val declared = !varOpt.isEmpty
     if (!declared)
       undeclaredError(node)
     else {
+      // Increment the number of uses; this is needed otherwise
+      // `int x` would count as a use
       varOpt.get.uses += 1
     }
     vPrint("Checking if " + node.token.get.string + " has been declared: " + declared)
     return declared
   }
 
+  /**
+   * Adds a variable to the symbol table of the current scope (block)
+   */
   private def addSymbol(parent: Node, node: Node): Boolean = {
+    // Make a new symbol table if there is not one already on the block
     if (parent.tableNode.isEmpty)
       parent.tableNode = Some(new TableNode())
     val id = node.children(1).token.get.value
+    // Check if the variable already exists in this scope
     if (parent.tableNode.get.contains(id)) {
       redeclarationError(node.children(1))
       return false
     }
     vPrint("Adding " + id + " to the symbol table")
+    // Actually add it to the table (hash map)
     parent.tableNode.get += ((id,
         new SymbolEntry(node.children(1).token.get,
           Symbol(node.children(0).token.get.string))))
@@ -176,6 +198,9 @@ class Analyzer(var rootNode: Node) {
       return Analyzer.getType(node)
   }
 
+  /**
+   * Checks the validity of a boolean expression (comparison)
+   */
   private def checkBooleanExpr(node: Node): Boolean = {
     vPrint("Checking boolean expression " + node)
     val arg1 = node.children(0)
@@ -188,6 +213,9 @@ class Analyzer(var rootNode: Node) {
     return Analyzer.getType(arg1) == Analyzer.getType(arg2)  
   }
 
+  /**
+   * Checks the validity of an assignment statement
+   */
   private def checkAssign(node: Node): Boolean = {
     val variable = Analyzer.getVariable(node.children(0))
     if (variable.isEmpty)
@@ -210,7 +238,11 @@ class Analyzer(var rootNode: Node) {
     return valid
   }
 
+  /**
+   * Checks the validity of an intop
+   */
   private def checkIntop(node: Node): Boolean = {
+    // intop's can only involve int's
     if (checkExprType(node.children(1)) != 'int) {
       intopError(node: Node)
       vPrint("Checking intop " + node + ": false")
@@ -220,12 +252,19 @@ class Analyzer(var rootNode: Node) {
     return true
   }
 
+  /**
+   * Checks the validity of a print statement; this only includes
+   * checking that the expression uses initialized variables
+   */
   private def checkPrint(node: Node): Boolean = {
     checkExprType(node.children(0))
     return true
   }
 
 
+  /**
+   * The initial method to be called to initiate the analysis
+   */
   def analyzeTree = {
     analyze(rootNode)
     if (errorState)
@@ -239,6 +278,7 @@ class Analyzer(var rootNode: Node) {
    */
   private def analyze(node: Node): Unit = {
     vPrint("Analyzing node " + node.symbol)
+    // The following switches determine what is to be done with each CST node
     node.symbol match {
       case 'VarDecl => addSymbol(node.getParentNode('Block).get, node)
       case 'id => checkDeclared(node)
@@ -249,6 +289,7 @@ class Analyzer(var rootNode: Node) {
       case _ => {}
     }
 
+    // Yay recursion!
     if (!node.children.isEmpty)
       node.children.foreach((child: Node) => {
         analyze(child)

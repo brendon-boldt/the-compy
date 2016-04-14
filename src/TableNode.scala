@@ -2,9 +2,11 @@ package compy
 
 import scala.collection.mutable.HashMap
 
+/**
+ * A wrapper class for a certain parameterization of a hashmap
+ * which includes a nifty toString method
+ */
 class TableNode extends HashMap[String, SymbolEntry] {
-
-  var parent: Option[TableNode] = None
 
   override def toString(): String = {
     var string = ""
