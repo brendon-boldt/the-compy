@@ -17,11 +17,12 @@ To build, run `make` (or `make clean` to clean class files)
 
 To run, run `scala compy.Main OPTIONS FILENAME`
 
-To see a visual representation of the bracketed strings, copy and paste the text [here](http://mshang.ca/syntree/).
 
 Output the concrete syntax tree with `-c` or `--cst`
 
 Output the abstract syntax tree with `-a` or `--ast`
+
+For bracketed strings, use `-b` or `--brackets`. To see a visual representation of the bracketed strings, copy and paste the text [here](http://mshang.ca/syntree/).
 
 Output the symbol table with `-s` or `--st`
 

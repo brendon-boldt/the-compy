@@ -54,13 +54,11 @@ class Parser(val grammar: Grammar) {
     makeErrorString
 
     if (errorState) {
-      advanceToNextProgram
-      vPrint("Parse failed; advancing to next program")
       println(errorString.stripLineEnd)
-    } else {
-      //println(rootNode.getSTString(0))
-      //if (rootNode.children.length == 1)
-        //println("Parser warning: forgotten '$' at end of program")
+    } else if (tokenIndex < tokenArray.length) {
+      errorState = true
+      println("Parse Error: Expecting end of program; got "
+        + tokenArray(tokenIndex).string + " at line " + tokenArray(tokenIndex).line)
     }
   }
   

@@ -41,12 +41,9 @@ class Node(var symbol: Symbol,
 
   // This generates a tree using tabs to denote levels; it's quite hideous
   def getTreeString(level: Int = 0): String = {
-    var parentString = "None"
-    if (!this.parent.isEmpty)
-      parentString = this.parent.get.symbol.toString
-    var string = "\t"*level + this.symbol.toString// + " --> " + parentString
-    if (!this.tableNode.isEmpty) {
-      string += "\n" + this.tableNode.get.toString + "\n"
+    var string = "-"*level + this.symbol.toString
+    if (!this.token.isEmpty) {
+      string += " :: " + this.token.get.string
     }
     if (!children.isEmpty)
       string += "\n"+children.map(_.getTreeString(level+1)+"\n").reduce(_+_)

@@ -12,79 +12,84 @@ class Lexer(val grammar: Grammar) {
   }
   
   // A string which will contain the source file bytes
-  var string = ""
-  // Number of exactly what you would think
+  var sourceString = ""
+  var programStrings = Array.empty[String]
+
+  // Fix the way that errors are reported
   var errors = 0
 
-  private def tokenError(string: String, line: Int) = {
+  private def tokenError(sourceString: String, line: Int) = {
     println("Unrecognized token " +
-      string + " at line " + line)
+      sourceString + " at line " + line)
   }
 
-  /** Filters token stream of unwanted tokens.
-   *  
+  var line = 1
+  /** 
+   *  Filters token stream of unwanted tokens.
    *  Removes identifiers that are actually keyword and whitespace tokens.
    */
-  private def filterTokens(tokens: ArrayBuffer[Token]): ArrayBuffer[Token] = {
-    val filtered = new ArrayBuffer[Token]
-    // Tracks where in the source file the tokens are
+  private def filterTokens(tokens: ArrayBuffer[Token], string: String): ArrayBuffer[Token] = {
+    var localError = false
+    val filtered = ArrayBuffer.empty[Token]
     var index = 0 
-    // Tracks the line number for error reporting
-    var line = 1
     for ( token <- tokens ) {
-      // Set the token's line number
       token.line = line
       if ( token.kind.name == 'newline ) {
         line += 1
       }
-      // If the 'while' is matched as token, there will also be a token for the inital
-      // 'w' as an ID. Matching 'while' moved the index past the index of the 'w' which
-      // means that the below condition will be false for the ID 'w' and it will not be
-      // included in the token stream.
       if (index <= token.start) {
-        // Illegal characters such as @ or # will cause a gap in the token stream.
-        // This means the index will be less than the start of the next token.
         if (index < token.start) {
           tokenError(string.substring(index, token.start), token.line)
           index = token.start
           errors += 1
+          localError = true
         }
-        // Only add a token if it is not whitespace
         if (!(token.kind.name == 'ws || token.kind.name == 'newline))
           filtered += token
-        // Advance the index
         index += token.length
       }
     }
-    filtered
+    if (localError)
+      return ArrayBuffer.empty[Token]
+    else
+      filtered
   }
 
-  /** Processes the source file string using the RegEx-definied grammar.
+  /** 
+   *  Processes the source file sourceString using the RegEx-definied grammar.
    *  Maybe use a stream instead.
    */
-  def getTokenArray: Array[Token] = {
+  def getTokenArrays: Array[Array[Token]] = {
     // Reset the number of errors
     errors = 0
-    var tokens = new ArrayBuffer[Token]
+    programStrings = sourceString.split("[$]",-1)
+    if (programStrings.last.trim.isEmpty)
+      programStrings = programStrings.slice(0, programStrings.length-1)
+    else
+      println("Warning: forgotten \"$\" at end of program")
+    var tokenArrays = ArrayBuffer.empty[ArrayBuffer[Token]]
     // Loop through each of the kinds as defined by the grammar
-    for ( k <- grammar.kinds ) {
-      // Save all RegEx matches
-      var matched = k.regex.get.findAllMatchIn(string)
-      matched.foreach((m: Match) => {
-        // Create a token from the match
-        var token = new Token(k, Some(m))
-        token.initialize
-        tokens += token
-      })
+    for ( s <- programStrings ) {
+      val tokens = ArrayBuffer.empty[Token]
+      for ( k <- grammar.kinds ) {
+        // Save all RegEx matches
+        var matched = k.regex.get.findAllMatchIn(s)
+        matched.foreach((m: Match) => {
+          // Create a token from the match
+          var token = new Token(k, Some(m))
+          token.initialize
+          tokens += token
+        })
+      }
+      tokenArrays += tokens
     }
-    // Sort the token by position in the source file.
-    // Since this is a stable sort (timsort, I think), lex rules which
-    // were specified first will still come before subsequent rules, think
-    // while as keyword vs while as 5 ID's. This is important for filtering
-    // the tokens proprely.
-    val sorted = tokens.sortBy(_.start)
-    // Filter the token stream and return the iterator
-    return filterTokens(sorted).toArray
+    val sorted = tokenArrays.map(_.sortBy(_.start))
+    val filtered = ArrayBuffer.empty[(ArrayBuffer[Token], String)]
+    for ( i <- Range(0, programStrings.length)) {
+      filtered += ((sorted(i), programStrings(i)))
+    }
+    return filtered.map((x:(ArrayBuffer[Token],String)) => 
+        filterTokens(x._1, x._2).toArray).toArray.filter(!_.isEmpty)
   }
 
 }

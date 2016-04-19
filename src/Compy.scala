@@ -9,60 +9,76 @@ object Main {
   var flagAST = false
   var flagST = false
   var flagVerbose = false
+  var flagBrackets = false
+
+  val grammar = generateGrammar
 
   def main(args: Array[String]) {
     if (!parseOptions(args))
       return
 
-    val grammar = generateGrammar
-
-    // Note to self: eventually make lex separate token streams
-    // based on the eop token
     val lexer = new Lexer(grammar)
     lexer.flagVerbose = flagVerbose
-    lexer.string = Source.fromFile(args.last).toStream.mkString
-    val tokenArray = lex(lexer)
-    if (tokenArray.isEmpty) return ()
+    lexer.sourceString = Source.fromFile(args.last).toStream.mkString
+    val tokenArrays = lex(lexer)
+    // Maybe leave a note if all programs fail? //
+    if (tokenArrays.isEmpty) return ()
 
-    val parser = new Parser(grammar)
-    parser.flagVerbose = flagVerbose
-    parser.setTokenStream(tokenArray.get)
-
-    val parseTrees = parse(parser)
+    val parseTrees = parse(tokenArrays)
     if (parseTrees.isEmpty) return ()
 
-    val builder = new ASTBuilder(parseTrees(0))
-    ASTBuilder.flagVerbose = flagVerbose
-    builder.flagVerbose = flagVerbose
-    val ast = builder.buildAST
-    if (flagAST)
-      println("[" + ast + "]")
+    val astArray = buildASTArray(parseTrees)
 
     // Do something with the return value
     // ^^ I probably don't need to
-    analyze(Array(ast))
+    analyze(astArray)
   }
 
-  private def analyze(parseTrees: Array[Node]): Boolean = {
+  private def analyze(astArray: Array[Node]): Array[Node] = {
     Analyzer.flagVerbose = flagVerbose
-    for ( t <- parseTrees ) {
+    for ( t <- astArray ) {
       val analyzer = new Analyzer(t)
       analyzer.flagVerbose = flagVerbose
       analyzer.analyzeTree
       if (flagST)
-        println(t.getSTString())
+        println(t.getSTString() + "\n")
     }
-    return false
+    return astArray
   }
 
-  private def parse(parser: Parser): Array[Node] = {
+  private def buildASTArray(parseTrees: Array[Node]): Array[Node] = {
+    val astArray = ArrayBuffer.empty[Node]
+    for ( t <- parseTrees ) {
+      val builder = new ASTBuilder(t)
+      ASTBuilder.flagVerbose = flagVerbose
+      builder.flagVerbose = flagVerbose
+      astArray += builder.buildAST
+      if (flagAST) {
+        if (flagBrackets)
+          println("[" + astArray.last + "]\n")
+        else
+          println(astArray.last.getTreeString()+"\n")
+      }
+    }
+    return astArray.toArray
+  }
+
+  private def parse(tokenArrays: Array[Array[Token]]): Array[Node] = {
     val parseTrees = ArrayBuffer.empty[Node]
-    while (!parser.isEOS) {
+    for ( tokens <- tokenArrays ) {
+      val parser = new Parser(grammar)
+      parser.flagVerbose = flagVerbose
+      parser.setTokenStream(tokens)
+
       parser.parseTokens
       if (!parser.errorState)
         parseTrees += parser.rootNode
+
       if (!parser.errorState && flagCST) {
-        println("[" + parser.rootNode.getTreeBrackets + "]")
+        if (flagBrackets)
+          println("[" + parser.rootNode.getTreeBrackets + "]\n")
+        else
+          println(parser.rootNode.getTreeString()+"\n")
       } else if (parser.errorState) {
         println("Parsing failed due to one or more errors")
       } else {
@@ -72,21 +88,26 @@ object Main {
     return parseTrees.toArray
   }
 
-  private def lex(lexer: Lexer): Option[Array[Token]] = {
-    val tokenArray = lexer.getTokenArray
+  private def lex(lexer: Lexer): Array[Array[Token]] = {
+    val tokenArrays = lexer.getTokenArrays
     if (flagVerbose) {
-      println("Token Steam:")
-      tokenArray.foreach((t: Token) => println(t))
+      println("Token Steams:")
+      for ( tokens <- tokenArrays ) 
+        tokens.foreach((t: Token) => println(t))
       println
     }
 
+    /*
+    for ( a <- tokenArrays )
+      println( "~~~\n" + a.mkString )
+    */
+
     if (lexer.errors > 0) {
-      println("Lexing failed due to one or more errors")
-      return None
-    } else if (!flagCST) {
+      println("Some programs failed lex\nContinuing compilation of valid programs")
+    } else if (flagCST || flagAST) {
       println("Lexing completed successfully")
     }
-    return Some(tokenArray)
+    return tokenArrays
   }
 
   /**
@@ -100,6 +121,7 @@ object Main {
           case "ast" => flagAST = true
           case "st" => flagST = true
           case "verbose" => flagVerbose = true
+          case "brackets" => flagBrackets = true
           case _ => {
             println("Unknown option " + option.substring(2,option.length))
             return false
@@ -111,6 +133,7 @@ object Main {
             case 'c' => flagCST = true
             case 'a' => flagAST = true
             case 's' => flagST = true
+            case 'b' => flagBrackets = true
             case 'v' => flagVerbose = true
             case _ => {
               println("Unknown option " + c)
@@ -136,7 +159,8 @@ object Main {
    * All languge-specific code is set here.
    */
   private def generateRules(g: Grammar): Grammar = {
-    g.addRule('Program, Array(Array('Block, 'eop)/*, Array('Block)*/))
+    g.addRule('Program, Array(Array('Block)))
+    //g.addRule('Program, Array(Array('Block, 'eop)/*, Array('Block)*/))
     g.addRule('Block, Array(Array('lbracket, 'StatementList, 'rbracket)
       ))
     g.addRule('StatementList, Array(Array('Statement, 'StatementList), Array()))
