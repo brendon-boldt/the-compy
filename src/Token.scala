@@ -2,7 +2,7 @@ package compy
 
 import scala.util.matching.Regex.Match
 
-class Token(val kind: Kind, val regMatch: Option[Match]) {
+class Token(val kind: Kind = Kind.nil, val regMatch: Option[Match] = None) {
   
   // Regex matches can be used to distinguish between
   // int, string, and boolean, for example, since they are all

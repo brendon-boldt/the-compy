@@ -17,8 +17,10 @@ object Analyzer {
   /**
    * Gets the variable specified by the node
    * I have not tested this thuroughly, but it probably works.
+   *
+   * This might ought to be in a class of its own.
    */
-  private def getVariable(node: Node): Option[SymbolEntry] = {
+  def getVariable(node: Node): Option[SymbolEntry] = {
     if (node.symbol != 'id) {
       throw new Exception("Cannot get variable with a non-ID node")
     }
@@ -38,7 +40,7 @@ object Analyzer {
    * Gets the type of any node. Most useful for ID's, intops,
    * and other expressions
    */
-  private def getType(node: Node): Symbol = node.symbol match {
+  def getType(node: Node): Symbol = node.symbol match {
     case 'id => {
       val se = getVariable(node)
       if (se.isEmpty)
@@ -143,7 +145,6 @@ class Analyzer(var rootNode: Node) {
         + node.children(1).token.get.line + "\n")
   }
 
-
   /**
    * Checks if the variable specified by the (ID) node has been declared
    */
@@ -222,11 +223,14 @@ class Analyzer(var rootNode: Node) {
       return false
     var valid = false
     val assignType = checkExprType(node.children(1))
+    variable.get.uses -= 1
     variable.get.varType match {
       // The reason why 'invalidType is considered not an error here is because
       // the type error would already have been registered as an intop error and
       // we do not want to report this twice.
-      case 'int => valid = (assignType == 'int || assignType == 'invalidType)
+      case 'int => valid = (assignType == 'int
+        || assignType == 'unit
+        || assignType == 'invalidType)
       case 'string => valid = (assignType == 'string)
       case 'boolean => valid = (assignType == 'boolean)
       case _ => {}
@@ -261,7 +265,6 @@ class Analyzer(var rootNode: Node) {
     return true
   }
 
-
   /**
    * The initial method to be called to initiate the analysis
    */
@@ -291,9 +294,8 @@ class Analyzer(var rootNode: Node) {
 
     // Yay recursion!
     if (!node.children.isEmpty)
-      node.children.foreach((child: Node) => {
+      for ( child <- node.children )
         analyze(child)
-      })
 
     node.symbol match {
       case 'Block => checkUnused(node)

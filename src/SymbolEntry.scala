@@ -27,6 +27,6 @@ class SymbolEntry (val token: Token, val varType: Symbol) {
 
 
   override def toString(): String = {
-    varType.toString
+    varType.toString + ":" + token.value
   }
 }

@@ -29,9 +29,28 @@ object Main {
 
     val astArray = buildASTArray(parseTrees)
 
-    // Do something with the return value
-    // ^^ I probably don't need to
-    analyze(astArray)
+    val analyzedArray = analyze(astArray)
+    if (analyzedArray.isEmpty) return ()
+
+    for ( aa <- analyzedArray ) {
+      var opt = new Optimizer(aa)
+      println("["+opt.optimizeTree+"]")
+    }
+
+    for ( exe <- codeGen(analyzedArray) )
+      println(exe)
+    
+  }
+
+  private def codeGen(array: Array[Node]): Array[Executable] = {
+    val executables = ArrayBuffer.empty[Executable]
+    for ( ast <- array ) {
+      val g = new Generator(ast)
+      executables += g.generateExecutable
+      println(executables.last.staticTable.mkString("\n"))
+      println
+    }
+    return executables.toArray
   }
 
   private def analyze(astArray: Array[Node]): Array[Node] = {

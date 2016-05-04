@@ -74,6 +74,20 @@ object ASTBuilder {
       case _ => return c
     }
   }
+
+  /**
+   * Applies transformations to the CST to make the AST
+   */
+  private def analyze(node: Node): Array[Node] = {
+    val results = ASTBuilder.applyRule(node)
+    // Analyze all of the children of the current node
+    results.foldLeft(Array.empty[Node])((arr: Array[Node], n: Node) => {
+      arr ++ analyze(n)
+    })
+    node.setChildren(results)
+    return results
+  }
+
 }
 
 class ASTBuilder(val cst: Node) {
@@ -91,20 +105,8 @@ class ASTBuilder(val cst: Node) {
   }
 
   def buildAST(): Node = {
-    rootNode = Some(analyze(cst)(0))
+    rootNode = Some(ASTBuilder.analyze(cst)(0))
     return rootNode.get
   }
 
-  /**
-   * Applies transformations to the CST to make the AST
-   */
-  private def analyze(node: Node): Array[Node] = {
-    val results = ASTBuilder.applyRule(node)
-    // Analyze all of the children of the current node
-    results.foldLeft(Array.empty[Node])((arr: Array[Node], n: Node) => {
-      arr ++ analyze(n)
-    })
-    node.setChildren(results)
-    return results
-  }
 }
