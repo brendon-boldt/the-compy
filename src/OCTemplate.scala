@@ -70,6 +70,20 @@ object OCTemplate {
         ("AC", "T"+id.get, "XX", "A2", "01", "FF"))
     }
 
+    case 'AccAssign => {
+      if (id.isEmpty) throw new Exception("id must be set for AccAssign")
+      new OCTemplate(ArrayBuffer[String]
+        ("8D", "T"+id.get, "XX"))
+    }
+
+    case 'AddInt => {
+      if (lit.isEmpty) throw new Exception("lit must be set for AddInt")
+      if (id.isEmpty) throw new Exception("id must be set for AddInt")
+      new OCTemplate(ArrayBuffer[String]
+        ("A9", "%02X".format(lit.get.toInt), "6D", "T"+id.get, "XX"))
+    }
+
+
     case 'HALT => {
       new OCTemplate(ArrayBuffer[String]
         ("00"))

@@ -61,7 +61,10 @@ class Executable {
     return hp + 1
   }
 
-  def assignStatement(se: SymbolEntry, argString: String): Unit = {
+  /**
+   * Assigns a literal value
+   */
+  def litAssign(se: SymbolEntry, argString: String): Unit = {
     if (se.varType == 'string) {
       var ptr = createString(argString)
       checkOutOfMemory
@@ -77,11 +80,17 @@ class Executable {
     }
   }
 
-  /**
-   * Decide how to handle int + int as opposed to int + var
-   */
-  def intop(varArg: Int, se: SymbolEntry): Unit = {
-    ???
+  def accAssign(se: SymbolEntry): Unit = {
+    val oct = OCTemplate('AccAssign,
+      id=Some(staticTable.get(se).get.id))
+    insert(oct)
+  }
+
+  def intop(intArg: String, se: SymbolEntry): Unit = {
+    val oct = OCTemplate('AddInt,
+      lit=Some(intArg),
+      id=Some(staticTable.get(se).get.id))
+    insert(oct)
   }
 
   def printString(se: SymbolEntry): Unit = {

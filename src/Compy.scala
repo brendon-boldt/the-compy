@@ -32,6 +32,10 @@ object Main {
     val analyzedArray = analyze(astArray)
     if (analyzedArray.isEmpty) return ()
 
+    /*
+     * STOP STUFF IF SA FAILS
+     */
+
     for ( aa <- analyzedArray ) {
       var opt = new Optimizer(aa)
       println("["+opt.optimizeTree+"]")
