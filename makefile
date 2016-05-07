@@ -1,5 +1,5 @@
 # Can be fsc or scalac
-SC = fsc
+SC = fsc -feature
 PACKAGE = compy
 SCALA_FILES = $(wildcard src/*.scala)
 VPATH = src

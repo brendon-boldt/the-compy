@@ -10,10 +10,11 @@ class Executable {
   def outOfMemory = ( ip + 1 > hp )
   def checkOutOfMemory = {
     if (outOfMemory)
-      throw new Exception("The executabel image has run out of memory.")
+      throw new Exception("The executable image has run out of memory.")
   }
   var ip = 0x0
   var hp = 0xff
+  var mm = 0x0
   // Create a jump table
 
   // SE is a unique ID for vars; String is its name for BP; Int is its addr 
@@ -31,6 +32,7 @@ class Executable {
         opCodes(i) = getStaticAddress(opCodes(i)(1))
       } else opCodes(i) match {
         case "XX" => opCodes(i) = "00"
+        case "MM" => opCodes(i) = "%02X" format mm
         case _ => ()
       }
     }
@@ -41,12 +43,10 @@ class Executable {
       staticTable.get(k).get.setAddress(ip)
       ip += 1
     }
+    mm = ip
   }
 
   def varDecl(se: SymbolEntry): Unit =  {
-    //val oct = OCTemplate('VarDecl,
-    //    id=Some((staticCounter+48).toChar) /*Fix*/)
-    //insert(oct)
     staticTable += se -> new StaticEntry((staticCounter+48).toChar/*Fix*/)
     staticCounter += 1
   }
@@ -93,6 +93,38 @@ class Executable {
     insert(oct)
   }
 
+  def compareLitVar(equ: Boolean, se: SymbolEntry, string: String): Unit = {
+    var value = string
+    if (string == "true")
+      value = "1"
+    else if (string == "false")
+      value = "0"
+    val oct = OCTemplate('CompareLit,
+      lit=Some(value),
+      equ=Some(equ),
+      id=Some(staticTable.get(se).get.id))
+    insert(oct)
+  }
+
+  def compareVarVar(equ: Boolean, se1: SymbolEntry, se2: SymbolEntry): Unit = {
+    val oct = OCTemplate('CompareVarVar,
+      equ=Some(equ),
+      id=Some(staticTable.get(se1).get.id),
+      id2=Some(staticTable.get(se2).get.id))
+    insert(oct)
+  }
+
+  def compareVarAcc(equ: Boolean, se: SymbolEntry): Unit = {
+    val oct = OCTemplate('CompareVarAcc,
+      equ=Some(equ),
+      id=Some(staticTable.get(se).get.id))
+    insert(oct)
+  }
+
+  def compareString(eq: Boolean, se: SymbolEntry, value: String): Unit = {
+
+  }
+
   def printString(se: SymbolEntry): Unit = {
     val oct = OCTemplate('PrintString,
       id=Some(staticTable.get(se).get.id))
@@ -111,6 +143,10 @@ class Executable {
       id=Some(staticTable.get(se).get.id))
     insert(oct)
   }
+
+ def printAcc(): Unit = {
+    insert(OCTemplate('PrintAcc))
+ }
 
   def insert(oct: OCTemplate) { 
     if (insertAt(oct, ip))

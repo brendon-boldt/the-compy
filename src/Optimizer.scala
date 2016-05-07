@@ -31,7 +31,6 @@ object Optimizer {
     if (c(0).symbol == c(1).symbol && (
         c(0).symbol == 'digit ||
         c(0).symbol == 'stringlit ||
-        c(0).symbol == 'id ||
         c(0).symbol == 'boolval
       )){
       if (node.symbol != 'eq ^ (c(0).token.get.value == c(1).token.get.value)) 

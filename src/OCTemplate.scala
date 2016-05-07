@@ -1,5 +1,7 @@
 package compy
 
+import scala.language.implicitConversions
+
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ArrayBuffer
 
@@ -13,25 +15,20 @@ object OCTemplate {
   }
   */
 
+  implicit def booleanToOpCode(b: Boolean) = if (b) "01" else "00"
+
+  /*
+   * equ must be in the form "00" or "01"
+   */
   def apply(op: Symbol,
     id: Option[Char] = None,
+    id2: Option[Char] = None,
     lit: Option[String] = None,
+    equ: Option[Boolean] = None,
     ptr: Option[Int] = None
-    //lit: Option[Int] = None
-    ) :OCTemplate = op match {
-    case 'VarDecl => {
-      if (id.isEmpty) throw new Exception("id must be set for VarDecl")
-      new OCTemplate(ArrayBuffer.empty[String])
-      /*
-      new OCTemplate(ArrayBuffer[String]
-        ("A9", "00", "8D", "T"+id.get, "XX"))
-      */
-    }
-
-    case 'StringDecl => {
-      if (id.isEmpty) throw new Exception("id must be set for VarDecl")
-      new OCTemplate(ArrayBuffer.empty[String])
-    }
+    ) :OCTemplate = {
+      println("Generating OCT: " + op)
+      op match {
 
     case 'LitAssign => {
       if (id.isEmpty) throw new Exception("id must be set for LitAssign")
@@ -70,6 +67,11 @@ object OCTemplate {
         ("AC", "T"+id.get, "XX", "A2", "01", "FF"))
     }
 
+    case 'PrintAcc => {
+      new OCTemplate(ArrayBuffer[String]
+        ("8D", "MM", "XX", "AC", "MM", "XX", "A2", "01", "FF"))
+    }
+
     case 'AccAssign => {
       if (id.isEmpty) throw new Exception("id must be set for AccAssign")
       new OCTemplate(ArrayBuffer[String]
@@ -83,13 +85,56 @@ object OCTemplate {
         ("A9", "%02X".format(lit.get.toInt), "6D", "T"+id.get, "XX"))
     }
 
+    case 'CompareLitVar => {
+      if (lit.isEmpty) throw new Exception("lit must be set for CompareLit")
+      if (id.isEmpty) throw new Exception("id must be set for CompareLit")
+      if (equ.isEmpty) throw new Exception("equ must be set for CompareLit")
+      new OCTemplate(ArrayBuffer[String]
+        ("A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX",
+         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+    }
+
+    case 'CompareVarVar => {
+      if (id.isEmpty) throw new Exception("id must be set for CompareLitVar")
+      if (id2.isEmpty) throw new Exception("id2 must be set for CompareLitVar")
+      if (equ.isEmpty) throw new Exception("equ must be set for CompareLitVar")
+      new OCTemplate(ArrayBuffer[String]
+        ("AE", "T"+id.get, "XX", "EC", "T"+id2.get, "XX",
+         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+    }
+
+    case 'CompareVarAcc => {
+      if (id.isEmpty) throw new Exception("id must be set for CompareLitAcc")
+      if (equ.isEmpty) throw new Exception("equ must be set for CompareLitAcc")
+      new OCTemplate(ArrayBuffer[String]
+        ("8D", "MM", "XX", "AE", "MM", "XX" , "EC", "T"+id.get, "XX",
+         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+    }
+
+    case 'CompareLitAcc => {
+      if (lit.isEmpty) throw new Exception("id must be set for CompareLitAcc")
+      if (equ.isEmpty) throw new Exception("equ must be set for CompareLitAcc")
+      new OCTemplate(ArrayBuffer[String]
+        ("8D", "MM", "XX", "A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX",
+         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+    }
+
+    /*
+    case 'CompareString => {
+
+    }
+    */
 
     case 'HALT => {
       new OCTemplate(ArrayBuffer[String]
         ("00"))
     }
 
-    case _ => emptyTemplate
+    case _ => {
+      throw new Exception("OpCode Template: "+ op + " not found")
+      emptyTemplate
+    }
+  }
   }
      
   val emptyTemplate = new OCTemplate(ArrayBuffer.empty[String])
