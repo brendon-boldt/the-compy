@@ -2,6 +2,7 @@ package compy
 
 import scala.collection.mutable.StringBuilder
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.Stack
 //import scala.collection.mutable.Set
 
 // Maybe include length-2 opcode validation?
@@ -16,7 +17,8 @@ class Executable {
   var ip = 0x0
   var hp = 0xff
   var mm = 0x0
-  // Create a jump table
+
+  var storeZF = true
 
   // This is needed if the value from the accumulator needs to be stored
   // to the X register for future comparison.
@@ -25,8 +27,15 @@ class Executable {
   // SE is a unique ID for vars; String is its name for BP; Int is its addr 
   val staticTable = HashMap.empty[SymbolEntry, StaticEntry]
   val memTable = HashMap.empty[Node, StaticEntry]
+  val jumpTable = HashMap.empty[Node, StaticEntry]
+  val jumpStack = Stack.empty[Int]
   var staticCounter = 0
   var memCounter = 0
+  var jumpCounter = 0
+
+  def getChar(arg: Int): Char = (arg + 48).toChar
+
+  def pushIP = jumpStack push ip
 
   def getStaticAddress(c: Char): String =
     staticTable.find( (arg:(SymbolEntry, StaticEntry))
@@ -35,7 +44,22 @@ class Executable {
   def getMemAddress(c: Char): String =
     memTable.find( (arg:(Node, StaticEntry))
         => (c == arg._2.id)).get._2.getAddressString
+
+  def getJumpAddress(c: Char): String =
+    jumpTable.find( (arg:(Node, StaticEntry))
+        => (c == arg._2.id)).get._2.getAddressString
   
+  def calculateJump(node: Node): Int = {
+    val jump = ip - jumpStack.pop
+    println("Jump: " + "%02X".format(jump))
+    jump
+  }
+
+  def storeJump(node: Node, jump: Int): Unit = {
+    jumpTable.get(node).get.setAddress(jump)
+  }
+
+
 
   def backpatch(): Unit = {
     for ( i <- Range(0, opCodes.length) ) {
@@ -43,6 +67,8 @@ class Executable {
         opCodes(i) = getStaticAddress(opCodes(i)(1))
       } else if (opCodes(i)(0) == 'M' && opCodes(i)(1) != 'M') {
         opCodes(i) = getMemAddress(opCodes(i)(1))
+      } else if (opCodes(i)(0) == 'J') {
+        opCodes(i) = getJumpAddress(opCodes(i)(1))
       } else opCodes(i) match {
         case "XX" => opCodes(i) = "00"
         case "MM" => opCodes(i) = "%02X" format mm
@@ -65,7 +91,7 @@ class Executable {
   }
 
   def varDecl(se: SymbolEntry): Unit =  {
-    staticTable += se -> new StaticEntry((staticCounter+48).toChar/*Fix*/)
+    staticTable += se -> new StaticEntry(getChar(staticCounter))
     staticCounter += 1
   }
 
@@ -119,24 +145,30 @@ class Executable {
       value = "0"
     val oct = OCTemplate('CompareLitVar,
       lit=Some(value),
-      equ=Some(equ),
       id=Some(staticTable.get(se).get.id))
     insert(oct)
+    if (storeZF)
+      insert(OCTemplate('ZFToAcc, equ=Some(equ)))
+    else
+      storeZF = true
   }
 
   def compareVarVar(equ: Boolean, se1: SymbolEntry, se2: SymbolEntry): Unit = {
     val oct = OCTemplate('CompareVarVar,
-      equ=Some(equ),
       id=Some(staticTable.get(se1).get.id),
       id2=Some(staticTable.get(se2).get.id))
     insert(oct)
+    insert(OCTemplate('ZFToAcc, equ=Some(equ)))
   }
 
   def compareVarAcc(equ: Boolean, se: SymbolEntry): Unit = {
     val oct = OCTemplate('CompareVarAcc,
-      equ=Some(equ),
       id=Some(staticTable.get(se).get.id))
     insert(oct)
+    if (storeZF)
+      insert(OCTemplate('ZFToAcc, equ=Some(equ)))
+    else
+      storeZF = true
   }
 
   def compareLitAcc(equ: Boolean, string: String): Unit = {
@@ -146,26 +178,47 @@ class Executable {
     else if (string == "false")
       value = "0"
     val oct = OCTemplate('CompareLitAcc,
-      lit=Some(value),
-      equ=Some(equ))
+      lit=Some(value))
     insert(oct)
+    if (storeZF)
+      insert(OCTemplate('ZFToAcc, equ=Some(equ)))
+    else
+      storeZF = true
   }
 
   def storeAccToM(node: Node): Unit = {
-    //println("How? " + accToMMap.get(node).get)
     insert(OCTemplate('AccToM, id=Some(memTable.get(node).get.id)))
   }
 
   def compareAccAcc(equ: Boolean, node: Node): Unit = {
     val oct = OCTemplate('CompareMAcc,
-      equ=Some(equ),
       id=Some(memTable.get(node).get.id))
     insert(oct)
+    if (storeZF)
+      insert(OCTemplate('ZFToAcc, equ=Some(equ)))
+    else
+      storeZF = true
   }
 
-  def compareString(eq: Boolean, se: SymbolEntry, value: String): Unit = {
-
+  def compareString(equ: Boolean, se: SymbolEntry, value: String): Unit = {
+    ???
+    if (storeZF)
+      insert(OCTemplate('ZFToAcc, equ=Some(equ)))
+    else
+      storeZF = true
   }
+
+  def ifStatement(node: Node, equ: Boolean): Unit = {
+    //jumpStack push node
+    val char = getChar(jumpCounter)
+    jumpTable += node -> new StaticEntry(char)
+    jumpCounter += 1
+    insert(OCTemplate('IfStatement,
+      equ=Some(equ),
+      id=Some(char)))
+    jumpStack push ip
+  }
+
 
   def printString(se: SymbolEntry): Unit = {
     val oct = OCTemplate('PrintString,

@@ -85,38 +85,34 @@ object OCTemplate {
         ("A9", "%02X".format(lit.get.toInt), "6D", "T"+id.get, "XX"))
     }
 
+    // Here
     case 'CompareLitVar => {
       if (lit.isEmpty) throw new Exception("lit must be set for CompareLit")
       if (id.isEmpty) throw new Exception("id must be set for CompareLit")
-      if (equ.isEmpty) throw new Exception("equ must be set for CompareLit")
       new OCTemplate(ArrayBuffer[String]
-        ("A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX",
-         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+        ("A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX"))
     }
 
+    // Here
     case 'CompareVarVar => {
       if (id.isEmpty) throw new Exception("id must be set for CompareLitVar")
       if (id2.isEmpty) throw new Exception("id2 must be set for CompareLitVar")
-      if (equ.isEmpty) throw new Exception("equ must be set for CompareLitVar")
       new OCTemplate(ArrayBuffer[String]
-        ("AE", "T"+id.get, "XX", "EC", "T"+id2.get, "XX",
-         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+        ("AE", "T"+id.get, "XX", "EC", "T"+id2.get, "XX"))
     }
 
+    // Here
     case 'CompareVarAcc => {
       if (id.isEmpty) throw new Exception("id must be set for CompareLitAcc")
-      if (equ.isEmpty) throw new Exception("equ must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "AE", "MM", "XX" , "EC", "T"+id.get, "XX",
-         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+        ("8D", "MM", "XX", "AE", "MM", "XX" , "EC", "T"+id.get, "XX"))
     }
 
+    // Here
     case 'CompareLitAcc => {
       if (lit.isEmpty) throw new Exception("id must be set for CompareLitAcc")
-      if (equ.isEmpty) throw new Exception("equ must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "A2", "%02X".format(lit.get.toInt), "EC", "MM", "XX",
-         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+        ("8D", "MM", "XX", "A2", "%02X".format(lit.get.toInt), "EC", "MM", "XX"))
     }
 
     case 'AccToM => {
@@ -125,23 +121,35 @@ object OCTemplate {
         ("8D", "M"+id.get, "XX"))
     }
 
+    // Here
     case 'CompareMAcc => {
-      if (equ.isEmpty) throw new Exception("equ must be set for CompareMAcc")
       if (id.isEmpty) throw new Exception("id must be set for CompareMAcc")
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "AE", "MM", "XX", "EC", "M"+id.get, "XX",
-         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+        ("8D", "MM", "XX", "AE", "MM", "XX", "EC", "M"+id.get, "XX"))
     }
 
     case 'ZFToAcc => {
       if (equ.isEmpty) throw new Exception("equ must be set for ZFToAcc")
+      new OCTemplate(ArrayBuffer[String]
+      ("A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
     }
 
-    /*
     case 'CompareString => {
-
+      ???
+      new OCTemplate(ArrayBuffer.empty[String])
     }
-    */
+
+    case 'IfStatement => {
+      if (id.isEmpty) throw new Exception("id must be set for IfStatement")
+      if (equ.isEmpty) throw new Exception("equ must be set for IfStatement")
+      if (equ.get)
+        new OCTemplate(ArrayBuffer[String]
+          ("D0", "J"+id.get))
+      else
+        new OCTemplate(ArrayBuffer[String]
+          ("A9", "00", "8D", "MM", "XX", "D0", "02", "A9", "01",
+            "EC", "MM", "XX", "D0", "J"+id.get))
+    }
 
     case 'HALT => {
       new OCTemplate(ArrayBuffer[String]

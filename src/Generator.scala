@@ -1,11 +1,15 @@
 package compy
 
+import scala.collection.mutable.Set
+
 class Generator(val rootNode: Node) {
 
   var flagVerbose = false
   def vPrint(s: String): Unit = if (flagVerbose) println("GENERATOR: " + s)
 
   val executable = new Executable
+
+  val noStoreSet = Set.empty[Node]
 
   def generateExecutable(): Executable = {
     generate(rootNode)
@@ -18,25 +22,52 @@ class Generator(val rootNode: Node) {
     return executable
   }
 
-  // Everything might have to be moved to post assign.
-  // I think this should be a leaf-first traversal
+  def preApplyBoolOp(c: Array[Node]): Unit = {
+    if ((c(0).symbol == 'intop || c(0).symbol == 'eq || c(0).symbol == 'neq)
+      && (c(1).symbol == 'intop || c(1).symbol == 'eq || c(1).symbol == 'neq)) {
+        executable.memTable += c(0) -> new StaticEntry((executable.memCounter+48).toChar)
+        executable.memCounter += 1
+      }
+  }
+
   def preApply(node: Node): Unit = {
     def c = node.children
     node.symbol match {
       case 'eq => {
-        if ((c(0).symbol == 'intop || c(0).symbol == 'eq || c(0).symbol == 'neq)
-          && (c(1).symbol == 'intop || c(1).symbol == 'eq || c(1).symbol == 'neq)) {
-            println("Setting accToM")
-            executable.memTable += c(0) -> new StaticEntry((executable.memCounter+48).toChar)
-            executable.memCounter += 1
-            // I am going to need a M memory table if I want this all to work
-          }
+        preApplyBoolOp(c)
       }
 
       case 'neq => {
-
+        preApplyBoolOp(c)
       }
       
+      case 'IfStatement => {
+        if (c(0).symbol == 'boolval) {
+          if (c(0).token.get.value == "false") {
+            node.setChildren(Array.empty[Node])
+          }
+        } else {
+          noStoreSet += c(0)
+          generate(c(0))
+          val equ = c(0).symbol == 'eq
+          node.setChildren(c.slice(1,2))
+          executable.ifStatement(node, equ)
+        }
+      }
+
+      case 'WhileStatement => {
+        if (c(0).symbol == 'boolval && c(0).token.get.value == "false") {
+          node.setChildren(Array.empty[Node])
+        } else {
+          noStoreSet += c(0)
+          //executable.pushIP
+          generate(c(0))
+          val equ = c(0).symbol == 'eq
+          node.setChildren(c.slice(1,2))
+          executable.ifStatement(node, equ)
+        }
+      }
+
       case _ => ()
     }
   }
@@ -49,7 +80,6 @@ class Generator(val rootNode: Node) {
   def applyCompareLit(equ: Boolean, c: Array[Node]): Unit = {
     for ( a <- Range(0,2) ) {
       val b = (a + 1) % 2
-      println(a + "" + b)
       if (c(a).symbol == 'id
         && (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
         executable.compareVarAcc(equ,
@@ -57,7 +87,6 @@ class Generator(val rootNode: Node) {
         return ()
       } else if ( (c(a).symbol == 'digit || c(a).symbol == 'boolval)
         && (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
-        //println(
         executable.compareLitAcc(equ,
           c(a).token.get.value)
         return ()
@@ -92,27 +121,41 @@ class Generator(val rootNode: Node) {
     def c = node.children
     node.symbol match {
       case 'VarDecl => {
-        //if (c(0).symbol != 'string) {
+        //if (c(0).symbol != 'string)
           executable.varDecl(Analyzer.getVariable(c(1)).get)
-        //}
+      }
+
+      case 'IfStatement => {
+        executable.storeJump(node, executable.calculateJump(node))
+      }
+
+      case 'WhileStatement => {
+        val jump = executable.calculateJump(node)
+        println("While Jump: " + jump)
       }
 
       case 'eq => {
+        executable.storeZF = !noStoreSet.contains(node)
+
         if (c(0).symbol == 'stringlit || c(1).symbol == 'stringlit)
           applyCompareString(true, c)
         else
           applyCompareLit(true, c)
         if (executable.memTable.contains(node)) {
-          println("Storing Acc to M")
           executable.storeAccToM(node)
         }
       }
+
       case 'neq => {
-        ???
+        executable.storeZF = !noStoreSet.contains(node)
+
         if (c(0).symbol == 'stringlit || c(1).symbol == 'stringlit)
           applyCompareString(false, c)
         else
           applyCompareLit(false, c)
+        if (executable.memTable.contains(node)) {
+          executable.storeAccToM(node)
+        }
       }
           
       case 'PrintStatement => {
@@ -140,7 +183,6 @@ class Generator(val rootNode: Node) {
 
       case 'AssignStatement => {
         val varType = Analyzer.getType(c(1))
-        //println("assign with " + varType)
         if (c(1).symbol == 'digit
             || c(1).symbol == 'boolval) {
           executable.litAssign(Analyzer.getVariable(c(0)).get,
