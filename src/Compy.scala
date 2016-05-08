@@ -52,6 +52,7 @@ object Main {
       val g = new Generator(ast)
       executables += g.generateExecutable
       println(executables.last.staticTable.mkString("\n"))
+      println(executables.last.memTable.mkString("\n"))
       println
     }
     return executables.toArray

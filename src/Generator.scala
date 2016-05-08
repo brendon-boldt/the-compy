@@ -23,7 +23,20 @@ class Generator(val rootNode: Node) {
   def preApply(node: Node): Unit = {
     def c = node.children
     node.symbol match {
+      case 'eq => {
+        if ((c(0).symbol == 'intop || c(0).symbol == 'eq || c(0).symbol == 'neq)
+          && (c(1).symbol == 'intop || c(1).symbol == 'eq || c(1).symbol == 'neq)) {
+            println("Setting accToM")
+            executable.memTable += c(0) -> new StaticEntry((executable.memCounter+48).toChar)
+            executable.memCounter += 1
+            // I am going to need a M memory table if I want this all to work
+          }
+      }
 
+      case 'neq => {
+
+      }
+      
       case _ => ()
     }
   }
@@ -34,23 +47,40 @@ class Generator(val rootNode: Node) {
    * comppared to each other.
    */
   def applyCompareLit(equ: Boolean, c: Array[Node]): Unit = {
-    if (c(0).symbol == 'id && c(1).symbol == 'id) {
-      executable.compareVarVar(equ,
-        Analyzer.getVariable(c(0)).get,
-        Analyzer.getVariable(c(1)).get)
-    } else if (c(0).symbol == 'id
-      && (c(1).symbol == 'eq || c(1).symbol == 'neq || c(1).symbol == 'intop)) {
-      executable.compareVarAcc(equ,
-        Analyzer.getVariable(c(0)).get)
-    } else if (false) {
-    } else if (false) {
-    } else if (c(0).symbol == 'id) {
-      executable.compareLitVar(equ,
-        Analyzer.getVariable(c(0)).get, c(1).token.get.value)
-    } else if (c(1).symbol == 'id) {
-      executable.compareLitVar(equ,
-        Analyzer.getVariable(c(1)).get, c(0).token.get.value)
-    } else
+    for ( a <- Range(0,2) ) {
+      val b = (a + 1) % 2
+      println(a + "" + b)
+      if (c(a).symbol == 'id
+        && (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
+        executable.compareVarAcc(equ,
+          Analyzer.getVariable(c(a)).get)
+        return ()
+      } else if ( (c(a).symbol == 'digit || c(a).symbol == 'boolval)
+        && (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
+        //println(
+        executable.compareLitAcc(equ,
+          c(a).token.get.value)
+        return ()
+      } else if (c(a).symbol == 'id && (c(b).symbol == 'digit || c(b).symbol == 'boolval)) {
+        executable.compareLitVar(equ,
+          Analyzer.getVariable(c(a)).get, c(b).token.get.value)
+        return ()
+      } else if (c(a).symbol == 'id && c(b).symbol == 'id) {
+        executable.compareVarVar(equ,
+          Analyzer.getVariable(c(a)).get,
+          Analyzer.getVariable(c(b)).get)
+        return ()
+      } else if ((c(a).symbol == 'intop || c(a).symbol == 'eq || c(a).symbol == 'neq)
+        && (c(b).symbol == 'intop || c(b).symbol == 'eq || c(b).symbol == 'neq)) {
+        executable.compareAccAcc(equ, c(0))
+        //executable.compareAccAcc(equ, executable.accToMMap.get(c(0)).get)
+        return ()
+      }
+      //} else if (c(1).symbol == 'id) {
+      //  executable.compareLitVar(equ,
+      //    Analyzer.getVariable(c(1)).get, c(0).token.get.value)
+      //} else
+    }
       throw new Exception("No code generation for comparing two constants")
   }
 
@@ -72,6 +102,10 @@ class Generator(val rootNode: Node) {
           applyCompareString(true, c)
         else
           applyCompareLit(true, c)
+        if (executable.memTable.contains(node)) {
+          println("Storing Acc to M")
+          executable.storeAccToM(node)
+        }
       }
       case 'neq => {
         ???

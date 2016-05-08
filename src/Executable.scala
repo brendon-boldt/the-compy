@@ -2,6 +2,7 @@ package compy
 
 import scala.collection.mutable.StringBuilder
 import scala.collection.mutable.HashMap
+//import scala.collection.mutable.Set
 
 // Maybe include length-2 opcode validation?
 class Executable {
@@ -17,12 +18,22 @@ class Executable {
   var mm = 0x0
   // Create a jump table
 
+  // This is needed if the value from the accumulator needs to be stored
+  // to the X register for future comparison.
+  //var accToMMap = HashMap.empty[Node,Int] 
+
   // SE is a unique ID for vars; String is its name for BP; Int is its addr 
   val staticTable = HashMap.empty[SymbolEntry, StaticEntry]
+  val memTable = HashMap.empty[Node, StaticEntry]
   var staticCounter = 0
+  var memCounter = 0
 
   def getStaticAddress(c: Char): String =
     staticTable.find( (arg:(SymbolEntry, StaticEntry))
+        => (c == arg._2.id)).get._2.getAddressString
+
+  def getMemAddress(c: Char): String =
+    memTable.find( (arg:(Node, StaticEntry))
         => (c == arg._2.id)).get._2.getAddressString
   
 
@@ -30,6 +41,8 @@ class Executable {
     for ( i <- Range(0, opCodes.length) ) {
       if (opCodes(i)(0) == 'T') {
         opCodes(i) = getStaticAddress(opCodes(i)(1))
+      } else if (opCodes(i)(0) == 'M' && opCodes(i)(1) != 'M') {
+        opCodes(i) = getMemAddress(opCodes(i)(1))
       } else opCodes(i) match {
         case "XX" => opCodes(i) = "00"
         case "MM" => opCodes(i) = "%02X" format mm
@@ -43,7 +56,12 @@ class Executable {
       staticTable.get(k).get.setAddress(ip)
       ip += 1
     }
+    for ( k <- memTable.keys ) {
+      memTable.get(k).get.setAddress(ip)
+      ip += 1
+    }
     mm = ip
+    ip += 1
   }
 
   def varDecl(se: SymbolEntry): Unit =  {
@@ -99,7 +117,7 @@ class Executable {
       value = "1"
     else if (string == "false")
       value = "0"
-    val oct = OCTemplate('CompareLit,
+    val oct = OCTemplate('CompareLitVar,
       lit=Some(value),
       equ=Some(equ),
       id=Some(staticTable.get(se).get.id))
@@ -118,6 +136,30 @@ class Executable {
     val oct = OCTemplate('CompareVarAcc,
       equ=Some(equ),
       id=Some(staticTable.get(se).get.id))
+    insert(oct)
+  }
+
+  def compareLitAcc(equ: Boolean, string: String): Unit = {
+    var value = string
+    if (string == "true")
+      value = "1"
+    else if (string == "false")
+      value = "0"
+    val oct = OCTemplate('CompareLitAcc,
+      lit=Some(value),
+      equ=Some(equ))
+    insert(oct)
+  }
+
+  def storeAccToM(node: Node): Unit = {
+    //println("How? " + accToMMap.get(node).get)
+    insert(OCTemplate('AccToM, id=Some(memTable.get(node).get.id)))
+  }
+
+  def compareAccAcc(equ: Boolean, node: Node): Unit = {
+    val oct = OCTemplate('CompareMAcc,
+      equ=Some(equ),
+      id=Some(memTable.get(node).get.id))
     insert(oct)
   }
 

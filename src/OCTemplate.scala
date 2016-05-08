@@ -115,8 +115,26 @@ object OCTemplate {
       if (lit.isEmpty) throw new Exception("id must be set for CompareLitAcc")
       if (equ.isEmpty) throw new Exception("equ must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX",
+        ("8D", "MM", "XX", "A2", "%02X".format(lit.get.toInt), "EC", "MM", "XX",
          "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+    }
+
+    case 'AccToM => {
+      if (id.isEmpty) throw new Exception("id must be set for AccToM")
+      new OCTemplate(ArrayBuffer[String]
+        ("8D", "M"+id.get, "XX"))
+    }
+
+    case 'CompareMAcc => {
+      if (equ.isEmpty) throw new Exception("equ must be set for CompareMAcc")
+      if (id.isEmpty) throw new Exception("id must be set for CompareMAcc")
+      new OCTemplate(ArrayBuffer[String]
+        ("8D", "MM", "XX", "AE", "MM", "XX", "EC", "M"+id.get, "XX",
+         "A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
+    }
+
+    case 'ZFToAcc => {
+      if (equ.isEmpty) throw new Exception("equ must be set for ZFToAcc")
     }
 
     /*
