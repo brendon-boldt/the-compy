@@ -12,6 +12,7 @@ class Generator(val rootNode: Node) {
   val noStoreSet = Set.empty[Node]
 
   def generateExecutable(): Executable = {
+    executable.flagVerbose = flagVerbose
     generate(rootNode)
     executable.insert(OCTemplate('HALT))
     executable.addressStatic
@@ -31,6 +32,7 @@ class Generator(val rootNode: Node) {
   }
 
   def preApply(node: Node): Unit = {
+    vPrint("Pre-applying " + node.symbol)
     def c = node.children
     node.symbol match {
       case 'eq => {
@@ -60,17 +62,20 @@ class Generator(val rootNode: Node) {
           node.setChildren(Array.empty[Node])
         } else {
           noStoreSet += c(0)
-          //executable.pushIP
+          executable.pushIP
           generate(c(0))
           val equ = c(0).symbol == 'eq
           node.setChildren(c.slice(1,2))
-          executable.ifStatement(node, equ)
+          executable.whileStatement(node, equ)
         }
       }
 
       case _ => ()
     }
   }
+
+  def isLit(s: Symbol) = (s == 'digit || s == 'boolval || s == 'stringlit)
+  def isExpr(s: Symbol) = (s == 'intop || s == 'eq || s == 'neq)
 
   /**
    * This generation will fail if the optimizer is not run;
@@ -81,16 +86,16 @@ class Generator(val rootNode: Node) {
     for ( a <- Range(0,2) ) {
       val b = (a + 1) % 2
       if (c(a).symbol == 'id
-        && (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
+        //&& (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
+        && isExpr(c(b).symbol)) {
         executable.compareVarAcc(equ,
           Analyzer.getVariable(c(a)).get)
         return ()
-      } else if ( (c(a).symbol == 'digit || c(a).symbol == 'boolval)
-        && (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
+      } else if ( isLit(c(a).symbol) && isExpr(c(b).symbol)) {
         executable.compareLitAcc(equ,
           c(a).token.get.value)
         return ()
-      } else if (c(a).symbol == 'id && (c(b).symbol == 'digit || c(b).symbol == 'boolval)) {
+      } else if (c(a).symbol == 'id && isLit(c(b).symbol)) {
         executable.compareLitVar(equ,
           Analyzer.getVariable(c(a)).get, c(b).token.get.value)
         return ()
@@ -99,48 +104,46 @@ class Generator(val rootNode: Node) {
           Analyzer.getVariable(c(a)).get,
           Analyzer.getVariable(c(b)).get)
         return ()
-      } else if ((c(a).symbol == 'intop || c(a).symbol == 'eq || c(a).symbol == 'neq)
-        && (c(b).symbol == 'intop || c(b).symbol == 'eq || c(b).symbol == 'neq)) {
+      } else if (isExpr(c(a).symbol) && isExpr(c(b).symbol)) {
         executable.compareAccAcc(equ, c(0))
-        //executable.compareAccAcc(equ, executable.accToMMap.get(c(0)).get)
         return ()
       }
-      //} else if (c(1).symbol == 'id) {
-      //  executable.compareLitVar(equ,
-      //    Analyzer.getVariable(c(1)).get, c(0).token.get.value)
-      //} else
     }
-      throw new Exception("No code generation for comparing two constants")
-  }
-
-  def applyCompareString(eq: Boolean, c: Array[Node]): Unit = {
+    // All constant-constant comparisons should be optimized out at this point
+    throw new Exception("No code generation for comparing two constants")
   }
 
   def postApply(node: Node): Unit = {
-
+    vPrint("Post-applying " + node.symbol)
     def c = node.children
     node.symbol match {
       case 'VarDecl => {
-        //if (c(0).symbol != 'string)
-          executable.varDecl(Analyzer.getVariable(c(1)).get)
+        executable.varDecl(Analyzer.getVariable(c(1)).get)
       }
 
       case 'IfStatement => {
-        executable.storeJump(node, executable.calculateJump(node))
+        executable.storeJump(c(0), executable.calculateJump)
       }
 
       case 'WhileStatement => {
-        val jump = executable.calculateJump(node)
-        println("While Jump: " + jump)
+        executable.postWhileStatement(node)
+        val blockStart = executable.popIP
+        val whileStart = executable.popIP
+        executable.storeJump(c(0), executable.getIP - blockStart)
+        executable.storeJump(node, 0x100 - (executable.getIP - whileStart))
+        vPrint("While jump: " + (executable.getIP - blockStart + 1))
+        vPrint("Wraparound jump: " + (0x100 - (executable.getIP - whileStart)))
       }
 
       case 'eq => {
         executable.storeZF = !noStoreSet.contains(node)
 
-        if (c(0).symbol == 'stringlit || c(1).symbol == 'stringlit)
-          applyCompareString(true, c)
-        else
-          applyCompareLit(true, c)
+        if (c(0).symbol == 'stringlit)
+          executable.createString(c(0).token.get.value)
+        else if (c(1).symbol == 'stringlit)
+          executable.createString(c(1).token.get.value)
+
+        applyCompareLit(true, c)
         if (executable.memTable.contains(node)) {
           executable.storeAccToM(node)
         }
@@ -149,10 +152,12 @@ class Generator(val rootNode: Node) {
       case 'neq => {
         executable.storeZF = !noStoreSet.contains(node)
 
-        if (c(0).symbol == 'stringlit || c(1).symbol == 'stringlit)
-          applyCompareString(false, c)
-        else
-          applyCompareLit(false, c)
+        if (c(0).symbol == 'stringlit)
+          executable.createString(c(0).token.get.value)
+        else if (c(1).symbol == 'stringlit)
+          executable.createString(c(1).token.get.value)
+
+        applyCompareLit(false, c)
         if (executable.memTable.contains(node)) {
           executable.storeAccToM(node)
         }
@@ -184,7 +189,8 @@ class Generator(val rootNode: Node) {
       case 'AssignStatement => {
         val varType = Analyzer.getType(c(1))
         if (c(1).symbol == 'digit
-            || c(1).symbol == 'boolval) {
+            || c(1).symbol == 'boolval
+            || c(1).symbol == 'stringlit) {
           executable.litAssign(Analyzer.getVariable(c(0)).get,
             c(1).token.get.value)
         } else if (c(1).symbol == 'intop
@@ -199,13 +205,10 @@ class Generator(val rootNode: Node) {
   }
   
   private def generate(node: Node): Unit = {
-    // Could be val, but that might cause a problem
     preApply(node)
-
     if (!node.children.isEmpty)
       for ( child <- node.children )
         generate(child)
-
     postApply(node)
   }
 }

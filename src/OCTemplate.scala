@@ -7,6 +7,9 @@ import scala.collection.mutable.ArrayBuffer
 
 object OCTemplate {
 
+  var flagVerbose = false
+  def vPrint(s: String): Unit = if (flagVerbose) println("OCTEMPLATE: " + s)
+
   /*
   def main(args: Array[String]) {
     println(OCTemplate('VarDecl))
@@ -27,12 +30,12 @@ object OCTemplate {
     equ: Option[Boolean] = None,
     ptr: Option[Int] = None
     ) :OCTemplate = {
-      println("Generating OCT: " + op)
+      vPrint("Generating OCT: " + op)
       op match {
 
     case 'LitAssign => {
-      if (id.isEmpty) throw new Exception("id must be set for LitAssign")
-      if (lit.isEmpty) throw new Exception("lit must be set for LitAssign")
+      assert(!id.isEmpty,"id must be set for LitAssign")
+      assert(!lit.isEmpty,"lit must be set for LitAssign")
       var litVal = lit.get
       if (litVal == "true")
         litVal = "1"
@@ -43,26 +46,26 @@ object OCTemplate {
     }
 
     case 'StringAssign => {
-      if (id.isEmpty) throw new Exception("id must be set for StringAssign")
-      if (ptr.isEmpty) throw new Exception("ptr must be set for StringAssign")
+      assert(!id.isEmpty,"id must be set for StringAssign")
+      assert(!ptr.isEmpty,"ptr must be set for StringAssign")
       new OCTemplate(ArrayBuffer[String]
         ("A9", "%02X".format(ptr.get), "8D", "T"+id.get, "XX"))
     }
 
     case 'PrintString => {
-      if (id.isEmpty) throw new Exception("id must be set for PrintLit")
+      assert(!id.isEmpty,"id must be set for PrintLit")
       new OCTemplate(ArrayBuffer[String]
         ("AC", "T"+id.get, "XX", "A2", "02", "FF"))
     }
 
     case 'PrintStringLit => {
-      if (ptr.isEmpty) throw new Exception("ptr must be set for PrintStringLit")
+      assert(!ptr.isEmpty,"ptr must be set for PrintStringLit")
       new OCTemplate(ArrayBuffer[String]
         ("A0", "%02X".format(ptr.get), "A2", "02", "FF"))
     }
 
     case 'PrintLit => {
-      if (id.isEmpty) throw new Exception("id must be set for PrintLit")
+      assert(!id.isEmpty,"id must be set for PrintLit")
       new OCTemplate(ArrayBuffer[String]
         ("AC", "T"+id.get, "XX", "A2", "01", "FF"))
     }
@@ -73,63 +76,63 @@ object OCTemplate {
     }
 
     case 'AccAssign => {
-      if (id.isEmpty) throw new Exception("id must be set for AccAssign")
+      assert(!id.isEmpty,"id must be set for AccAssign")
       new OCTemplate(ArrayBuffer[String]
         ("8D", "T"+id.get, "XX"))
     }
 
     case 'AddInt => {
-      if (lit.isEmpty) throw new Exception("lit must be set for AddInt")
-      if (id.isEmpty) throw new Exception("id must be set for AddInt")
+      assert(!lit.isEmpty,"lit must be set for AddInt")
+      assert(!id.isEmpty,"id must be set for AddInt")
       new OCTemplate(ArrayBuffer[String]
         ("A9", "%02X".format(lit.get.toInt), "6D", "T"+id.get, "XX"))
     }
 
     // Here
     case 'CompareLitVar => {
-      if (lit.isEmpty) throw new Exception("lit must be set for CompareLit")
-      if (id.isEmpty) throw new Exception("id must be set for CompareLit")
+      assert(!lit.isEmpty,"lit must be set for CompareLit")
+      assert(!id.isEmpty,"id must be set for CompareLit")
       new OCTemplate(ArrayBuffer[String]
         ("A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX"))
     }
 
     // Here
     case 'CompareVarVar => {
-      if (id.isEmpty) throw new Exception("id must be set for CompareLitVar")
-      if (id2.isEmpty) throw new Exception("id2 must be set for CompareLitVar")
+      assert(!id.isEmpty,"id must be set for CompareLitVar")
+      assert(!id2.isEmpty,"id2 must be set for CompareLitVar")
       new OCTemplate(ArrayBuffer[String]
         ("AE", "T"+id.get, "XX", "EC", "T"+id2.get, "XX"))
     }
 
     // Here
     case 'CompareVarAcc => {
-      if (id.isEmpty) throw new Exception("id must be set for CompareLitAcc")
+      assert(!id.isEmpty,"id must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
         ("8D", "MM", "XX", "AE", "MM", "XX" , "EC", "T"+id.get, "XX"))
     }
 
     // Here
     case 'CompareLitAcc => {
-      if (lit.isEmpty) throw new Exception("id must be set for CompareLitAcc")
+      assert(!lit.isEmpty,"id must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
         ("8D", "MM", "XX", "A2", "%02X".format(lit.get.toInt), "EC", "MM", "XX"))
     }
 
     case 'AccToM => {
-      if (id.isEmpty) throw new Exception("id must be set for AccToM")
+      assert(!id.isEmpty,"id must be set for AccToM")
       new OCTemplate(ArrayBuffer[String]
         ("8D", "M"+id.get, "XX"))
     }
 
     // Here
     case 'CompareMAcc => {
-      if (id.isEmpty) throw new Exception("id must be set for CompareMAcc")
+      assert(!id.isEmpty,"id must be set for CompareMAcc")
       new OCTemplate(ArrayBuffer[String]
         ("8D", "MM", "XX", "AE", "MM", "XX", "EC", "M"+id.get, "XX"))
     }
 
     case 'ZFToAcc => {
-      if (equ.isEmpty) throw new Exception("equ must be set for ZFToAcc")
+      assert(!equ.isEmpty,"equ must be set for ZFToAcc")
       new OCTemplate(ArrayBuffer[String]
       ("A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
     }
@@ -140,15 +143,23 @@ object OCTemplate {
     }
 
     case 'IfStatement => {
-      if (id.isEmpty) throw new Exception("id must be set for IfStatement")
-      if (equ.isEmpty) throw new Exception("equ must be set for IfStatement")
+      assert(!id.isEmpty,"id must be set for IfStatement")
+      assert(!equ.isEmpty,"equ must be set for IfStatement")
       if (equ.get)
         new OCTemplate(ArrayBuffer[String]
           ("D0", "J"+id.get))
       else
         new OCTemplate(ArrayBuffer[String]
-          ("A9", "00", "8D", "MM", "XX", "D0", "02", "A9", "01",
+          ("A9", "00", "8D", "MM", "XX", "AE", "MM", "XX",
+            "D0", "03", "EE", "MM", "XX",
             "EC", "MM", "XX", "D0", "J"+id.get))
+    }
+
+    case 'PostWhileStatement => {
+      assert(!id.isEmpty,"id must be set for PostWhileStatement")
+      new OCTemplate(ArrayBuffer[String]
+        ("AE", "MM", "XX", "EE", "MM", "XX",
+         "EC", "MM", "XX", "D0", "J"+id.get))
     }
 
     case 'HALT => {

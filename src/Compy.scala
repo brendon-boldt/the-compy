@@ -7,6 +7,7 @@ object Main {
 
   var flagCST = false
   var flagAST = false
+  var flagOAST = false
   var flagST = false
   var flagVerbose = false
   var flagBrackets = false
@@ -38,7 +39,11 @@ object Main {
 
     for ( aa <- analyzedArray ) {
       var opt = new Optimizer(aa)
-      println("["+opt.optimizeTree+"]")
+      if (flagOAST)
+        if (flagBrackets)
+          println("["+opt.optimizeTree+"]")
+        else
+          println(opt.rootNode.getSTString()+"\n")
     }
 
     for ( exe <- codeGen(analyzedArray) )
@@ -47,11 +52,13 @@ object Main {
   }
 
   private def codeGen(array: Array[Node]): Array[Executable] = {
+    OCTemplate.flagVerbose = flagVerbose
     val executables = ArrayBuffer.empty[Executable]
     for ( ast <- array ) {
       val g = new Generator(ast)
+      g.flagVerbose = flagVerbose
       executables += g.generateExecutable
-      println(executables.last.staticTable.mkString("\n"))
+      //println(executables.last.staticTable.mkString("\n"))
       println
     }
     return executables.toArray
@@ -120,11 +127,6 @@ object Main {
       println
     }
 
-    /*
-    for ( a <- tokenArrays )
-      println( "~~~\n" + a.mkString )
-    */
-
     if (lexer.errors > 0) {
       println("Some programs failed lex\nContinuing compilation of valid programs")
     } else if (flagCST || flagAST) {
@@ -142,6 +144,7 @@ object Main {
         option.substring(2,option.length) match {
           case "cst" => flagCST = true
           case "ast" => flagAST = true
+          case "oast" => flagOAST = true
           case "st" => flagST = true
           case "verbose" => flagVerbose = true
           case "brackets" => flagBrackets = true
@@ -155,6 +158,7 @@ object Main {
           c match {
             case 'c' => flagCST = true
             case 'a' => flagAST = true
+            case 'o' => flagOAST = true
             case 's' => flagST = true
             case 'b' => flagBrackets = true
             case 'v' => flagVerbose = true
