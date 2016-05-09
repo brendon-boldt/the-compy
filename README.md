@@ -22,6 +22,8 @@ Output the concrete syntax tree with `-c` or `--cst`
 
 Output the abstract syntax tree with `-a` or `--ast`
 
+Output the optimized abstract syntax tree with `-o` or `--oast`
+
 For bracketed strings, use `-b` or `--brackets`. To see a visual representation of the bracketed strings, copy and paste the text [here](http://mshang.ca/syntree/).
 
 Output the symbol table with `-s` or `--st`

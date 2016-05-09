@@ -33,22 +33,14 @@ object Main {
     val analyzedArray = analyze(astArray)
     if (analyzedArray.isEmpty) return ()
 
-    /*
-     * STOP STUFF IF SA FAILS
-     */
+    val optimizedArray = optimize(analyzedArray)
 
-    for ( aa <- analyzedArray ) {
-      var opt = new Optimizer(aa)
-      if (flagOAST)
-        if (flagBrackets)
-          println("["+opt.optimizeTree+"]")
-        else
-          println(opt.rootNode.getSTString()+"\n")
-    }
 
-    for ( exe <- codeGen(analyzedArray) )
+    for ( exe <- codeGen(optimizedArray) ) {
+      println
       println(exe)
-    
+      println
+    }
   }
 
   private def codeGen(array: Array[Node]): Array[Executable] = {
@@ -57,23 +49,41 @@ object Main {
     for ( ast <- array ) {
       val g = new Generator(ast)
       g.flagVerbose = flagVerbose
-      executables += g.generateExecutable
+      val exe = g.generateExecutable
+      if (!exe.isEmpty)
+        executables += exe.get
       //println(executables.last.staticTable.mkString("\n"))
-      println
     }
     return executables.toArray
   }
 
-  private def analyze(astArray: Array[Node]): Array[Node] = {
+  private def optimize(argArray: Array[Node]): Array[Node] = {
+    val optimizedArray = ArrayBuffer.empty[Node]
+    for ( aa <- argArray ) {
+      val opt = new Optimizer(aa)
+      optimizedArray += opt.optimizeTree
+      if (flagOAST)
+        if (flagBrackets)
+          println("["+optimizedArray.last+"]")
+        else
+          println(optimizedArray.last.getTreeString()+"\n")
+    }
+    return optimizedArray.toArray
+  }
+
+  private def analyze(argArray: Array[Node]): Array[Node] = {
+    val astArray = ArrayBuffer.empty[Node]
     Analyzer.flagVerbose = flagVerbose
-    for ( t <- astArray ) {
+    for ( t <- argArray ) {
       val analyzer = new Analyzer(t)
       analyzer.flagVerbose = flagVerbose
       analyzer.analyzeTree
+      if (!analyzer.errorState)
+        astArray += t
       if (flagST)
         println(t.getSTString() + "\n")
     }
-    return astArray
+    return astArray.toArray
   }
 
   private def buildASTArray(parseTrees: Array[Node]): Array[Node] = {

@@ -22,16 +22,18 @@ class Generator(val rootNode: Node) {
   /**
    * Build the executable via an optimized AST traversal
    */
-  def generateExecutable(): Executable = {
+  def generateExecutable(): Option[Executable] = {
     executable.flagVerbose = flagVerbose
     generate(rootNode)
     executable.insert(OCTemplate('HALT))
     executable.addressStatic
     if (executable.outOfMemory) {
-      throw new Exception("Executable has run out of memory.")
+      println("The executable image has run out of memory")
+      return None
+    } else {
+      executable.backpatch
+      return Some(executable)
     }
-    executable.backpatch
-    return executable
   }
 
   /**
@@ -229,9 +231,13 @@ class Generator(val rootNode: Node) {
    */
   private def generate(node: Node): Unit = {
     preApply(node)
+    if (executable.outOfMemory)
+      return ()
     if (!node.children.isEmpty)
       for ( child <- node.children )
         generate(child)
     postApply(node)
+    if (executable.outOfMemory)
+      return ()
   }
 }

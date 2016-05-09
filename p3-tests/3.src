@@ -1,0 +1,14 @@
+{
+  boolean t
+  t = true
+  if ( t == true ) {
+    print("yes ")
+    if ( false == t ) {
+      print("no ")
+    }
+    if ( false != t ) {
+      print("yes ")
+    }
+  }
+  print("done")
+}$

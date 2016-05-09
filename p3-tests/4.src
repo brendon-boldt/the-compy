@@ -1,0 +1,12 @@
+{
+  int i
+  i = 4
+  while ( i != 9 + 1 ) {
+    print(i)
+    print(" ")
+    if ( i == 6 ) {
+      print("fears seven because ")
+    }
+    i = 1 + i 
+  }
+}$

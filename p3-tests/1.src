@@ -1,0 +1,13 @@
+{
+  boolean b
+  boolean t
+  boolean f
+  t = true
+  f = false
+  b = ( ( ( t == f ) == ( f == f ) ) != ( t == f ) )
+  print(b)
+  b = ( ( ( t != f ) == ( f == f ) ) != ( t == f ) )
+  print(b)
+  b = ( ( ( t == f ) == ( t == f ) ) != ( t == f ) )
+  print(b)
+}$

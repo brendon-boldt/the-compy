@@ -14,7 +14,8 @@ class Executable {
   def outOfMemory = ( ip + 1 > hp )
   def checkOutOfMemory = {
     if (outOfMemory)
-      throw new Exception("The executable image has run out of memory.")
+      println("The executable image has run out of memory")
+      //throw new Exception("The executable image has run out of memory.")
   }
   // Instruction Pointer, that is
   private var ip = 0x0
@@ -306,8 +307,10 @@ class Executable {
   }
 
   private def insertAt(oct: OCTemplate, address: Int): Boolean =  { 
+    /*
     if (address < 0 || (address + oct.length - 1) > 0xff)
       throw new Exception("Ran out of memory; OCTemplate must fit in the range [0,0xff]")
+    */
     for ( i <- Range(0, oct.length) ) {
       opCodes(address+i) = oct(i)
     }

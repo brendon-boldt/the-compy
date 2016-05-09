@@ -1,0 +1,16 @@
+{
+  string s
+  s = "scahla"
+  string r
+  r = "scayla"
+  print( ( s == "scahla") )
+  print(" ")
+  print( ( r == "scahla") )
+  print(" ")
+  print( ( s != s ) )
+  print(" ")
+  print( ( r != s) )
+  print(" ")
+  print( ( r == s) )
+  print(" ")
+}$
