@@ -1,5 +1,9 @@
 package compy
 
+/**
+ * A class which represents an entry in a static table.
+ * This includes static variables, jumps, and multi-use memory
+ */
 class StaticEntry(val id: Char, private var address: Integer = 0) {
 
   def setAddress(arg: Integer): Unit = {

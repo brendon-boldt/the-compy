@@ -16,16 +16,19 @@ class Executable {
     if (outOfMemory)
       throw new Exception("The executable image has run out of memory.")
   }
+  // Instruction Pointer, that is
   private var ip = 0x0
   private var hp = 0xff
+  // MM is just multi-use memory for whenever I just need to dump something
   private var mm = 0x0
   def getIP = ip
   var storeZF = true
 
-  val stringMap = HashMap.empty[String, Int]
 
   def getChar(arg: Int): Char = (arg + 48).toChar
 
+  // Here are all of the super-fun memory structures
+  val stringMap = HashMap.empty[String, Int]
   val staticTable = HashMap.empty[SymbolEntry, StaticEntry]
   val memTable = HashMap.empty[Node, StaticEntry]
   val jumpTable = HashMap.empty[Node, StaticEntry]
@@ -34,6 +37,10 @@ class Executable {
   var memCounter = 0
   var jumpCounter = 0
 
+  /**
+   * There are many ways one can interpret a literal (as opposed to a
+   * figurative), and this will do it for you.
+   */
   def translateLit(s: String): String = {
     if (s == "true")
       return "1"
@@ -48,6 +55,7 @@ class Executable {
   def pushIP = jumpStack push ip
   def popIP = jumpStack.pop
 
+  // This is how backpatching finds the correct address to substitute
   def getStaticAddress(c: Char): String =
     staticTable.find( (arg:(SymbolEntry, StaticEntry))
         => (c == arg._2.id)).get._2.getAddressString
@@ -76,6 +84,9 @@ class Executable {
     jumpTable(node).setAddress(jump)
   }
 
+  /**
+   * Pretty self-explanatory
+   */
   def backpatch(): Unit = {
     for ( i <- Range(0, opCodes.length) ) {
       if (opCodes(i)(0) == 'T') {
@@ -95,6 +106,9 @@ class Executable {
     }
   }
 
+  /**
+   * Assign addresses to all of the static/multi-memory vairables
+   */
   def addressStatic(): Unit = {
     for ( k <- staticTable.keys ) {
       vPrint("Addressing " + k + " to " + ip )
@@ -116,6 +130,10 @@ class Executable {
     staticCounter += 1
   }
 
+  /**
+   * Check if there is already a representation of that string present,
+   * if not, create a new one in memory and return the pointer
+   */
   def createString(argString: String): Int = {
     val string = argString.slice(1,argString.length-1)
     if (stringMap.contains(string)) {
@@ -165,7 +183,11 @@ class Executable {
       id=Some(staticTable(se).id))
     insert(oct)
   }
-
+  
+  /**
+   * I, unforutnately, need one of these method for whatever combination
+   * of literals, variables, and expressions might get compared.
+   */
   def compareLitVar(equ: Boolean, se: SymbolEntry, string: String): Unit = {
     var value = translateLit(string)
     val oct = OCTemplate('CompareLitVar,
@@ -214,18 +236,14 @@ class Executable {
     insert(OCTemplate('AccToM, id=Some(memTable(node).id)))
   }
 
+  /**
+   * This probably should be compareExprExpr, but vim's refactoring is not
+   * the greatest, so I'll save that for another time.
+   */
   def compareAccAcc(equ: Boolean, node: Node): Unit = {
     val oct = OCTemplate('CompareMAcc,
       id=Some(memTable(node).id))
     insert(oct)
-    if (storeZF)
-      insert(OCTemplate('ZFToAcc, equ=Some(equ)))
-    else
-      storeZF = true
-  }
-
-  def compareString(equ: Boolean, se: SymbolEntry, value: String): Unit = {
-    ???
     if (storeZF)
       insert(OCTemplate('ZFToAcc, equ=Some(equ)))
     else
@@ -278,6 +296,9 @@ class Executable {
     insert(OCTemplate('PrintAcc))
  }
 
+  /**
+   * The method to neatly store an opcode at IP
+   */
   def insert(oct: OCTemplate) { 
     vPrint("Inserting OpCode " + oct)
     if (insertAt(oct, ip))

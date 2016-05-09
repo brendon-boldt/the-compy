@@ -5,23 +5,22 @@ import scala.language.implicitConversions
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ArrayBuffer
 
+/**
+ * The OpCode Template class provides the opcodes corresponding to
+ * different high level tasks specified by the AST.
+ */
 object OCTemplate {
 
   var flagVerbose = false
   def vPrint(s: String): Unit = if (flagVerbose) println("OCTEMPLATE: " + s)
 
-  /*
-  def main(args: Array[String]) {
-    println(OCTemplate('VarDecl))
-    println(OCTemplate('LitAssign, id = Some('0'), lit=Some(31)))
-    println(OCTemplate('PrintLit, id = Some('0')))
-  }
-  */
-
+  // An opcode/hexidecimal string representation of booleans
   implicit def booleanToOpCode(b: Boolean) = if (b) "01" else "00"
 
-  /*
-   * equ must be in the form "00" or "01"
+  /**
+   * Uses pattern matching to determine the correct OCT to use.
+   * All parameters (except symbol) are optional and then checked
+   * with assert depending on the opcode in question.
    */
   def apply(op: Symbol,
     id: Option[Char] = None,
@@ -88,7 +87,10 @@ object OCTemplate {
         ("A9", "%02X".format(lit.get.toInt), "6D", "T"+id.get, "XX"))
     }
 
-    // Here
+    /*
+     * Yes, there needs to be a different set of opcodes for each variant
+     * of comparison. It was such a pain to code all of these.
+     */
     case 'CompareLitVar => {
       assert(!lit.isEmpty,"lit must be set for CompareLit")
       assert(!id.isEmpty,"id must be set for CompareLit")
@@ -96,7 +98,6 @@ object OCTemplate {
         ("A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX"))
     }
 
-    // Here
     case 'CompareVarVar => {
       assert(!id.isEmpty,"id must be set for CompareLitVar")
       assert(!id2.isEmpty,"id2 must be set for CompareLitVar")
@@ -104,14 +105,12 @@ object OCTemplate {
         ("AE", "T"+id.get, "XX", "EC", "T"+id2.get, "XX"))
     }
 
-    // Here
     case 'CompareVarAcc => {
       assert(!id.isEmpty,"id must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
         ("8D", "MM", "XX", "AE", "MM", "XX" , "EC", "T"+id.get, "XX"))
     }
 
-    // Here
     case 'CompareLitAcc => {
       assert(!lit.isEmpty,"id must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
@@ -124,22 +123,17 @@ object OCTemplate {
         ("8D", "M"+id.get, "XX"))
     }
 
-    // Here
     case 'CompareMAcc => {
       assert(!id.isEmpty,"id must be set for CompareMAcc")
       new OCTemplate(ArrayBuffer[String]
         ("8D", "MM", "XX", "AE", "MM", "XX", "EC", "M"+id.get, "XX"))
     }
 
+    // Sometimes, I wish I could just store the zero flag to the accumulator
     case 'ZFToAcc => {
       assert(!equ.isEmpty,"equ must be set for ZFToAcc")
       new OCTemplate(ArrayBuffer[String]
       ("A9", !equ.get+"", "D0", "02", "A9", equ.get+""))
-    }
-
-    case 'CompareString => {
-      ???
-      new OCTemplate(ArrayBuffer.empty[String])
     }
 
     case 'IfStatement => {
@@ -149,6 +143,7 @@ object OCTemplate {
         new OCTemplate(ArrayBuffer[String]
           ("D0", "J"+id.get))
       else
+        // Life would be easier if I just could XOR a register
         new OCTemplate(ArrayBuffer[String]
           ("A9", "00", "8D", "MM", "XX", "AE", "MM", "XX",
             "D0", "03", "EE", "MM", "XX",
@@ -162,6 +157,7 @@ object OCTemplate {
          "EC", "MM", "XX", "D0", "J"+id.get))
     }
 
+    // I am pretty sure this is unnecessary, but it's for good measure, I guess.
     case 'HALT => {
       new OCTemplate(ArrayBuffer[String]
         ("00"))
@@ -177,7 +173,6 @@ object OCTemplate {
   val emptyTemplate = new OCTemplate(ArrayBuffer.empty[String])
 }
 
-// Should it be a String or a Symbol?
 class OCTemplate(val opCodes: ArrayBuffer[String]) {
 
   def apply(i: Int) = opCodes(i)

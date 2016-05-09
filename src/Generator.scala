@@ -9,8 +9,19 @@ class Generator(val rootNode: Node) {
 
   val executable = new Executable
 
+  /**
+   * The set of comparison nodes which should _not_ dump their results
+   * into the accumulator. The only nodes which should be here are those
+   * comparisons which occur as the top level of an if/while condition.
+   */
   val noStoreSet = Set.empty[Node]
 
+  def isLit(s: Symbol) = (s == 'digit || s == 'boolval || s == 'stringlit)
+  def isExpr(s: Symbol) = (s == 'intop || s == 'eq || s == 'neq)
+
+  /**
+   * Build the executable via an optimized AST traversal
+   */
   def generateExecutable(): Executable = {
     executable.flagVerbose = flagVerbose
     generate(rootNode)
@@ -23,14 +34,22 @@ class Generator(val rootNode: Node) {
     return executable
   }
 
+  /**
+   * When two expressions are compared against each other, one of their
+   * values will need to be store in memory. I _really_ wish we actually
+   * had a stack to play with.
+   */
   def preApplyBoolOp(c: Array[Node]): Unit = {
-    if ((c(0).symbol == 'intop || c(0).symbol == 'eq || c(0).symbol == 'neq)
-      && (c(1).symbol == 'intop || c(1).symbol == 'eq || c(1).symbol == 'neq)) {
+    if (isExpr(c(0).symbol) && isExpr(c(1).symbol)) {
         executable.memTable += c(0) -> new StaticEntry((executable.memCounter+48).toChar)
         executable.memCounter += 1
       }
   }
 
+  /**
+   * These represent procedures which are run before `generate()`
+   * is called on the children of the node.
+   */
   def preApply(node: Node): Unit = {
     vPrint("Pre-applying " + node.symbol)
     def c = node.children
@@ -44,6 +63,8 @@ class Generator(val rootNode: Node) {
       }
       
       case 'IfStatement => {
+        // If the condition is a boolean value, there's no need
+        // to check the condition in any way
         if (c(0).symbol == 'boolval) {
           if (c(0).token.get.value == "false") {
             node.setChildren(Array.empty[Node])
@@ -58,6 +79,7 @@ class Generator(val rootNode: Node) {
       }
 
       case 'WhileStatement => {
+        // While false can similarly be optimized out
         if (c(0).symbol == 'boolval && c(0).token.get.value == "false") {
           node.setChildren(Array.empty[Node])
         } else {
@@ -74,9 +96,6 @@ class Generator(val rootNode: Node) {
     }
   }
 
-  def isLit(s: Symbol) = (s == 'digit || s == 'boolval || s == 'stringlit)
-  def isExpr(s: Symbol) = (s == 'intop || s == 'eq || s == 'neq)
-
   /**
    * This generation will fail if the optimizer is not run;
    * this is so because there is no OCT for two constants
@@ -86,7 +105,6 @@ class Generator(val rootNode: Node) {
     for ( a <- Range(0,2) ) {
       val b = (a + 1) % 2
       if (c(a).symbol == 'id
-        //&& (c(b).symbol == 'eq || c(b).symbol == 'neq || c(b).symbol == 'intop)) {
         && isExpr(c(b).symbol)) {
         executable.compareVarAcc(equ,
           Analyzer.getVariable(c(a)).get)
@@ -113,6 +131,11 @@ class Generator(val rootNode: Node) {
     throw new Exception("No code generation for comparing two constants")
   }
 
+  /**
+   * These are the procedures which are run after the children have
+   * `generate()` called on them. Most of the procedures lie here since
+   * expressions and whatnot are evalued leaves-first.
+   */
   def postApply(node: Node): Unit = {
     vPrint("Post-applying " + node.symbol)
     def c = node.children
@@ -129,9 +152,11 @@ class Generator(val rootNode: Node) {
         executable.postWhileStatement(node)
         val blockStart = executable.popIP
         val whileStart = executable.popIP
+        // No need to look here; I __definitely__ did not have any
+        // off-by-one errors.
         executable.storeJump(c(0), executable.getIP - blockStart)
         executable.storeJump(node, 0x100 - (executable.getIP - whileStart))
-        vPrint("While jump: " + (executable.getIP - blockStart + 1))
+        vPrint("While jump: " + (executable.getIP - blockStart))
         vPrint("Wraparound jump: " + (0x100 - (executable.getIP - whileStart)))
       }
 
@@ -164,7 +189,6 @@ class Generator(val rootNode: Node) {
       }
           
       case 'PrintStatement => {
-        //if (Analyzer.getType(c(0)) != 'string) {
         val sym = c(0).symbol
         if (sym == 'digit || sym == 'boolval) {
           executable.printLit(Analyzer.getVariable(c(0)).get)
@@ -188,14 +212,10 @@ class Generator(val rootNode: Node) {
 
       case 'AssignStatement => {
         val varType = Analyzer.getType(c(1))
-        if (c(1).symbol == 'digit
-            || c(1).symbol == 'boolval
-            || c(1).symbol == 'stringlit) {
+        if (isLit(c(1).symbol)) {
           executable.litAssign(Analyzer.getVariable(c(0)).get,
             c(1).token.get.value)
-        } else if (c(1).symbol == 'intop
-            || c(1).symbol == 'eq
-            || c(1).symbol == 'neq) {
+        } else if (isExpr(c(1).symbol)) {
           executable.accAssign(Analyzer.getVariable(c(0)).get)
         }
       }
@@ -204,6 +224,9 @@ class Generator(val rootNode: Node) {
     }
   }
   
+  /**
+   * See? I told you I love recursion.
+   */
   private def generate(node: Node): Unit = {
     preApply(node)
     if (!node.children.isEmpty)
