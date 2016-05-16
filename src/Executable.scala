@@ -287,10 +287,14 @@ class Executable {
     insert(oct)
   }
 
-  def printLit(se: SymbolEntry): Unit = {
-    val oct = OCTemplate('PrintLit,
-      id=Some(staticTable(se).id))
-    insert(oct)
+  def printVar(se: SymbolEntry): Unit = {
+    insert(OCTemplate('PrintVar,
+      id=Some(staticTable(se).id)))
+  }
+
+  def printLit(arg: String): Unit = {
+    insert(OCTemplate('PrintLit,
+      ptr=Some(translateLit(arg).toInt)))
   }
 
  def printAcc(): Unit = {

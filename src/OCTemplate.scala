@@ -63,10 +63,16 @@ object OCTemplate {
         ("A0", "%02X".format(ptr.get), "A2", "02", "FF"))
     }
 
-    case 'PrintLit => {
+    case 'PrintVar => {
       assert(!id.isEmpty,"id must be set for PrintLit")
       new OCTemplate(ArrayBuffer[String]
         ("AC", "T"+id.get, "XX", "A2", "01", "FF"))
+    }
+
+    case 'PrintLit => {
+      assert(!ptr.isEmpty,"ptr must be set for PrintLit")
+      new OCTemplate(ArrayBuffer[String]
+        ("A0", "%02X".format(ptr.get), "A2", "01", "FF"))
     }
 
     case 'PrintAcc => {

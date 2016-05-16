@@ -193,7 +193,7 @@ class Generator(val rootNode: Node) {
       case 'PrintStatement => {
         val sym = c(0).symbol
         if (sym == 'digit || sym == 'boolval) {
-          executable.printLit(Analyzer.getVariable(c(0)).get)
+          executable.printLit(c(0).token.get.value)
         } else if (sym == 'stringlit) {
           executable.printStringLit(c(0).token.get.value)          
         } else if (sym == 'id) {
@@ -201,7 +201,7 @@ class Generator(val rootNode: Node) {
           if (variable.varType == 'string)
             executable.printString(variable)
           else
-            executable.printLit(variable)
+            executable.printVar(variable)
         } else {
           executable.printAcc
         }
