@@ -14,6 +14,11 @@ object Optimizer {
           node.token.get.string = node.token.get.value
           node.symbol = 'digit
           return Array.empty[Node]
+        } else if (c(1).symbol == 'intop) {
+          node.token.get.value =
+            (c(0).token.get.value.toInt + c(1).children(0).token.get.value.toInt).toString
+          node.token.get.string = node.token.get.value
+          node.symbol = 'digit
         }
         return c
       }
