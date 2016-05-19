@@ -109,7 +109,7 @@ class Generator(val rootNode: Node) {
       if (c(a).symbol == 'id
         && isExpr(c(b).symbol)) {
         executable.compareVarAcc(equ,
-          Analyzer.getVariable(c(a)).get)
+          c(a).symbolEntry.get)
         return ()
       } else if ( isLit(c(a).symbol) && isExpr(c(b).symbol)) {
         executable.compareLitAcc(equ,
@@ -117,12 +117,12 @@ class Generator(val rootNode: Node) {
         return ()
       } else if (c(a).symbol == 'id && isLit(c(b).symbol)) {
         executable.compareLitVar(equ,
-          Analyzer.getVariable(c(a)).get, c(b).token.get.value)
+          c(a).symbolEntry.get, c(b).token.get.value)
         return ()
       } else if (c(a).symbol == 'id && c(b).symbol == 'id) {
         executable.compareVarVar(equ,
-          Analyzer.getVariable(c(a)).get,
-          Analyzer.getVariable(c(b)).get)
+          c(a).symbolEntry.get,
+          c(b).symbolEntry.get)
         return ()
       } else if (isExpr(c(a).symbol) && isExpr(c(b).symbol)) {
         executable.compareAccAcc(equ, c(0))
@@ -143,7 +143,7 @@ class Generator(val rootNode: Node) {
     def c = node.children
     node.symbol match {
       case 'VarDecl => {
-        executable.varDecl(Analyzer.getVariable(c(1)).get)
+        executable.varDecl(c(1).symbolEntry.get)
       }
 
       case 'IfStatement => {
@@ -197,7 +197,7 @@ class Generator(val rootNode: Node) {
         } else if (sym == 'stringlit) {
           executable.printStringLit(c(0).token.get.value)          
         } else if (sym == 'id) {
-          val variable = Analyzer.getVariable(c(0)).get
+          val variable = c(0).symbolEntry.get
           if (variable.varType == 'string)
             executable.printString(variable)
           else
@@ -209,16 +209,16 @@ class Generator(val rootNode: Node) {
 
       // All constant + constant intop's have been optimized out at this point
       case 'intop => {
-        executable.intop(c(0).token.get.value, Analyzer.getVariable(c(1)).get)
+        executable.intop(c(0).token.get.value, c(1).symbolEntry.get)
       }
 
       case 'AssignStatement => {
         val varType = Analyzer.getType(c(1))
         if (isLit(c(1).symbol)) {
-          executable.litAssign(Analyzer.getVariable(c(0)).get,
+          executable.litAssign(c(0).symbolEntry.get,
             c(1).token.get.value)
         } else if (isExpr(c(1).symbol)) {
-          executable.accAssign(Analyzer.getVariable(c(0)).get)
+          executable.accAssign(c(0).symbolEntry.get)
         }
       }
 

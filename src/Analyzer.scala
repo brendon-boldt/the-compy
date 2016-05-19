@@ -157,6 +157,7 @@ class Analyzer(var rootNode: Node) {
       // Increment the number of uses; this is needed otherwise
       // `int x` would count as a use
       varOpt.get.uses += 1
+      node.symbolEntry = varOpt
     }
     vPrint("Checking if " + node.token.get.string + " has been declared: " + declared)
     return declared

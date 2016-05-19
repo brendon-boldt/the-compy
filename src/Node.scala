@@ -8,6 +8,8 @@ class Node(var symbol: Symbol,
   
   var tableNode: Option[TableNode] = None
 
+  var symbolEntry: Option[SymbolEntry] = None
+
   // Nodes are usually constructed before the children are known.
   // Hence, we must have a way to set the children post-construction.
   def setChildren(children: Array[Node]) {
