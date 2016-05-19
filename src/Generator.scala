@@ -147,7 +147,8 @@ class Generator(val rootNode: Node) {
       }
 
       case 'IfStatement => {
-        executable.storeJump(c(0), executable.calculateJump)
+        if (!c.isEmpty && c(0).symbol != 'boolval)
+          executable.storeJump(c(0), executable.calculateJump)
       }
 
       case 'WhileStatement => {
