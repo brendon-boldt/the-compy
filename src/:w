@@ -25,7 +25,7 @@ class Executable {
   def getIP = ip
   var storeZF = true
 
-  def setX = (x:Int) => xReg != x
+  def setX = (_:Int)  => xReg != _
   var xReg = 0
 
 
@@ -319,7 +319,7 @@ class Executable {
         // This is not 'safe', but something is wrong with the opCodes if this fails
         val xVal = Integer.parseInt(oc(i+1), 16)
         if (!setX(xVal))
-          oct.opCodes.remove(i,2)
+          oct.opCodes.remove(oct.opCodes.indexOf(oc),2)
         else
           xReg = xVal
       } else if ( oc(i) == "LX" ) {
@@ -327,6 +327,7 @@ class Executable {
       }
       i += 1
     }
+    setX = true
 
     if (insertAt(oct, ip))
       ip += oct.length

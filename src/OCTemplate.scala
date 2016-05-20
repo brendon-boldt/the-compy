@@ -54,30 +54,30 @@ object OCTemplate {
     case 'PrintString => {
       assert(!id.isEmpty,"id must be set for PrintLit")
       new OCTemplate(ArrayBuffer[String]
-        ("AC", "T"+id.get, "XX", "A2", "02", "FF"))
+        ("AC", "T"+id.get, "XX", "Lx", "02", "FF"))
     }
 
     case 'PrintStringLit => {
       assert(!ptr.isEmpty,"ptr must be set for PrintStringLit")
       new OCTemplate(ArrayBuffer[String]
-        ("A0", "%02X".format(ptr.get), "A2", "02", "FF"))
+        ("A0", "%02X".format(ptr.get), "Lx", "02", "FF"))
     }
 
     case 'PrintVar => {
       assert(!id.isEmpty,"id must be set for PrintLit")
       new OCTemplate(ArrayBuffer[String]
-        ("AC", "T"+id.get, "XX", "A2", "01", "FF"))
+        ("AC", "T"+id.get, "XX", "Lx", "01", "FF"))
     }
 
     case 'PrintLit => {
       assert(!ptr.isEmpty,"ptr must be set for PrintLit")
       new OCTemplate(ArrayBuffer[String]
-        ("A0", "%02X".format(ptr.get), "A2", "01", "FF"))
+        ("A0", "%02X".format(ptr.get), "Lx", "01", "FF"))
     }
 
     case 'PrintAcc => {
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "AC", "MM", "XX", "A2", "01", "FF"))
+        ("8D", "MM", "XX", "AC", "MM", "XX", "Lx", "01", "FF"))
     }
 
     case 'AccAssign => {
@@ -101,26 +101,26 @@ object OCTemplate {
       assert(!lit.isEmpty,"lit must be set for CompareLit")
       assert(!id.isEmpty,"id must be set for CompareLit")
       new OCTemplate(ArrayBuffer[String]
-        ("A2", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX"))
+        ("Lx", "%02X".format(lit.get.toInt), "EC", "T"+id.get, "XX"))
     }
 
     case 'CompareVarVar => {
       assert(!id.isEmpty,"id must be set for CompareLitVar")
       assert(!id2.isEmpty,"id2 must be set for CompareLitVar")
       new OCTemplate(ArrayBuffer[String]
-        ("AE", "T"+id.get, "XX", "EC", "T"+id2.get, "XX"))
+        ("LX", "T"+id.get, "XX", "EC", "T"+id2.get, "XX"))
     }
 
     case 'CompareVarAcc => {
       assert(!id.isEmpty,"id must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "AE", "MM", "XX" , "EC", "T"+id.get, "XX"))
+        ("8D", "MM", "XX", "LX", "MM", "XX" , "EC", "T"+id.get, "XX"))
     }
 
     case 'CompareLitAcc => {
       assert(!lit.isEmpty,"id must be set for CompareLitAcc")
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "A2", "%02X".format(lit.get.toInt), "EC", "MM", "XX"))
+        ("8D", "MM", "XX", "Lx", "%02X".format(lit.get.toInt), "EC", "MM", "XX"))
     }
 
     case 'AccToM => {
@@ -132,7 +132,7 @@ object OCTemplate {
     case 'CompareMAcc => {
       assert(!id.isEmpty,"id must be set for CompareMAcc")
       new OCTemplate(ArrayBuffer[String]
-        ("8D", "MM", "XX", "AE", "MM", "XX", "EC", "M"+id.get, "XX"))
+        ("8D", "MM", "XX", "LX", "MM", "XX", "EC", "M"+id.get, "XX"))
     }
 
     // Sometimes, I wish I could just store the zero flag to the accumulator
@@ -150,17 +150,20 @@ object OCTemplate {
           ("D0", "J"+id.get))
       else
         // Life would be easier if I just could XOR a register
+        // It does not matter what is in MM since we are comparing to itself
         new OCTemplate(ArrayBuffer[String]
-          ("A9", "00", "8D", "MM", "XX", "AE", "MM", "XX",
+          ("LX", "MM", "XX",
             "D0", "03", "EE", "MM", "XX",
             "EC", "MM", "XX", "D0", "J"+id.get))
     }
 
     case 'PostWhileStatement => {
       assert(!id.isEmpty,"id must be set for PostWhileStatement")
+      // The first byte is always not 0 while the last byte is always 0
+      // so they will always be unequal
       new OCTemplate(ArrayBuffer[String]
-        ("AE", "MM", "XX", "EE", "MM", "XX",
-         "EC", "MM", "XX", "D0", "J"+id.get))
+        ("LX", "00", "XX", 
+         "EC", "FF", "XX", "D0", "J"+id.get))
     }
 
     // I am pretty sure this is unnecessary, but it's for good measure, I guess.
