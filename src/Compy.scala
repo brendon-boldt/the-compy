@@ -228,6 +228,9 @@ object Main {
    * Here is the definition of what will be lexed by--er--lex
    */
   private def generateKinds(g: Grammar): Grammar = {
+    g.addKind('COMMENT,  """//""".r)
+    //g.addKind('BCOM,  """/\*""".r)
+    //g.addKind('ECOM,  """\*/""".r)
     g.addKind('print,    """(print)""".r)
     g.addKind('type,     """(int|string|boolean)""".r)
     g.addKind('boolval,  """(true|false)""".r)

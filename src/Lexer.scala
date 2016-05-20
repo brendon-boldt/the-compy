@@ -31,22 +31,46 @@ class Lexer(val grammar: Grammar) {
   private def filterTokens(tokens: ArrayBuffer[Token], string: String): ArrayBuffer[Token] = {
     var localError = false
     val filtered = ArrayBuffer.empty[Token]
+    val tokenIterator = tokens.iterator
     var index = 0 
-    for ( token <- tokens ) {
-      token.line = line
-      if ( token.kind.name == 'newline ) {
-        line += 1
-      }
-      if (index <= token.start) {
-        if (index < token.start) {
-          tokenError(string.substring(index, token.start), token.line)
-          index = token.start
-          errors += 1
-          localError = true
+    for ( token <- tokenIterator ) {
+      if (token.kind.name == 'COMMENT) {
+        // This flushes all of the commented out tokens from the iterator
+        // and resets the index to the start of the next line
+        val takeList = tokenIterator.takeWhile(_.kind.name != 'newline).toList
+        if (takeList.nonEmpty) {
+          val last = takeList.last
+          index = last.start + last.length + 1
+        } else {
+          index = token.start + token.length + 1
         }
-        if (!(token.kind.name == 'ws || token.kind.name == 'newline))
-          filtered += token
-        index += token.length
+      /*
+      } else if (token.kind.name == 'BCOM) {
+        tokenIterator.takeWhile(_.kind.name != 'ECOM).size
+        if (tokenIterator.hasNext) {
+          val last = tokenIterator.next
+          println("Not working..." + last)
+          index = last.start + last.length + 1
+        } else {
+        }
+      */
+      } else {
+        token.line = line
+        if ( token.kind.name == 'newline ) {
+          line += 1
+        }
+
+        if (index <= token.start) {
+          if (index < token.start) {
+            tokenError(string.substring(index, token.start), token.line)
+            index = token.start
+            errors += 1
+            localError = true
+          }
+          if (!(token.kind.name == 'ws || token.kind.name == 'newline))
+            filtered += token
+          index += token.length
+        }
       }
     }
     if (localError)
